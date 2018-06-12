@@ -1,0 +1,138 @@
+/*
+ These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
+ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
+*/
+
+/* style user response reply */
+.quark.reply {
+	background: transparent;
+	box-shadow: none;
+	float: right;
+	position: relative;
+	transform-origin: right top;
+  margin: 8px 0 8px 0;
+	padding: 0;
+	max-width: 65%;
+  font-family: 'Lato', sans-serif;
+}
+
+.quark.reply a.btn {
+	float: right;
+}
+
+.quark.reply.history {
+	margin: 0 0 2px 0; /* remembered quarks do not need to stand out via margin */
+}
+.quark.reply.say {
+  min-width: 45%;
+}
+.quark.reply .quark-content {
+/*	transition: all 200ms; */
+}
+
+.quark .quark-user-input {
+	background: rgba(62, 195, 128, 1);
+	color: #fff;
+	padding: 8px 16px;
+	border-radius: 17px 0px 17px 17px;
+	margin-left: 2px;
+	/* text-align: center; */
+	display: inline-block;
+  float: right;
+	cursor: pointer;
+/*	transition: all 200ms; */
+	text-decoration: none;
+	word-break: normal;
+	/* animation-duration: 1s; */
+	animation-name: animate-reply;
+	animation-play-state: paused;
+	animation-fill-mode: forwards;
+	/* opacity: 0; */
+	transform: translate3d(0px, 0px, 0px);
+	animation-delay: -3s;
+	-ms-animation-delay: -3;
+	-webkit-animation-delay: -3s;
+}
+
+.quark.reply .quark-content .quark-button {
+	background: rgba(62, 195, 128, 0.67);
+	color: #fff;
+	padding: 8px 16px;
+  width: 100%;
+	margin-left: 2px;
+	text-align: center;
+	display: inline-block;
+  float: right;
+	cursor: pointer;
+/*	transition: all 200ms; */
+	text-decoration: none;
+	word-break: normal;
+	/* animation-duration: 1s; */
+	animation-name: animate-reply;
+	animation-play-state: paused;
+	animation-fill-mode: forwards;
+	/* opacity: 0; */
+	transform: translate3d(0px, 0px, 0px);
+	animation-delay: -3s;
+	-ms-animation-delay: -3;
+	-webkit-animation-delay: -3s;
+}
+@keyframes animate-reply {
+    from { opacity: 0 }
+    to { opacity: 1 }
+}
+.quark.reply.say .quark-content .quark-button {
+	animation-play-state: running;
+	margin-top: 3px;
+	min-height: 24px;
+	overflow: hidden;
+}
+
+.quark.reply .quark-content .quark-button:first-child {
+/*	border-radius: 15px 15px 15px 5px;
+	margin-left: 2px;
+	*/
+}
+.quark.reply .quark-content .quark-button:last-child,
+.quark.reply .quark-content .quark-button.quark-pick {
+/*	border-radius: 15px 15px 5px 15px; */
+}
+.quark.reply.quark-picked .quark-content .quark-button {
+/*	transform: scale(0) translate3d(0px, 0px, 0px);;
+	padding: 0;*/
+}
+.quark.reply:not(.quark-picked) .quark-content .quark-button:hover,
+.quark.reply .quark-content .quark-button.quark-pick {
+	background: #3ec380;
+	transform: scale(1) translate3d(0px, 0px, 0px);;
+  padding: 8px 16px;
+  height: auto;
+}
+
+/* interaction recall styles */
+.quark.history .quark-content .quark-button,
+.quark.history.reply:not(.quark-picked) .quark-content .quark-button:hover,
+.quark.history.reply .quark-content .quark-button.quark-pick {
+	background: rgba(62, 195, 128, 0.67);
+	cursor: default;
+}
+
+/* input fields for quarks */
+.quark .quark-content input {
+	background: linear-gradient(193deg, #1faced, #5592dc 100%) !important;
+	box-shadow: 0 0px 1px 0px #000, 0 -1px 0 0px rgba(255, 255, 255, 0.38) inset;
+	text-shadow: 0 1px rgba(0, 0, 0, 0.35);
+	border: 0;
+	outline: 0;
+}
+.quark .quark-content input::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  color: rgba(255,255,255,.5);
+  text-shadow: none;
+}
+.quark .quark-content input::-moz-placeholder { /* Firefox 19+ */
+  color: rgba(255,255,255,.5);
+  text-shadow: none;
+}
+.quark .quark-content input:read-only {
+	background: linear-gradient(166deg, #48121d, #0d4058 100%) !important;
+}

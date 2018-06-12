@@ -1,0 +1,123 @@
+/*
+ These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
+ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
+*/
+
+/* style quarks */
+.quark,
+.quark-typing {
+  color: #212121;
+  background: #f5f5f5;
+  padding: 8px 16px;
+  border-radius: 0px 17px 17px 17px;
+  font-weight: 400;
+  text-transform: none;
+  text-align: left;
+  font-size: 14px;
+  letter-spacing: .5px;
+  margin: 8px 0 0 0;
+  max-width: 100%;
+  float: none;
+  clear: both;
+  line-height: 1.5em;
+  font-family: 'Lato', sans-serif;
+  /* word-break: break-word; */
+  transform-origin: left top;
+/*  transition: all 200ms; */
+}
+
+.says-buttons a {
+  margin-left: 0px;
+  margin-bottom: 1px;
+  width: 100%;
+}
+
+.quark-button-wrap {
+  display: inline-block;
+  position: relative;
+  left: -14px;
+}
+
+.says-buttons {
+  background-color: #fff;
+}
+
+.quark .quark-content {
+/*  transition: opacity 150ms; */
+}
+
+.quark:not(.say) .quark-content {
+  opacity: 0;
+}
+
+.quark-unadorned.imagine,
+.quark-typing.imagine,
+.quark.imagine {
+  transform: scale(0);
+/*  transition: all 200ms, height 200ms 1s, padding 200ms 1s; */
+  max-height: 35px !important;
+}
+
+.quark-sentiment-placeholder {
+  float: right;
+  width: 32px;
+  margin-left: 0px;
+  top: 8px;
+  position: relative;
+}
+
+.quark-sentiment-shown {
+  float: right;
+  width: 32px;
+  margin-left: 0px;
+  top: 8px;
+  position: relative;
+}
+
+.quark.imagine {
+  margin: 0;
+  height: 0;
+  padding: 0;
+}
+
+.quark-inline-3d-visualizer {
+  width: 96% !important;
+	height:300px !important;
+  margin: auto;
+}
+
+
+/* style media that's inside quarks */
+.quark .quark-content img {
+  width: calc(100% + 32px);
+  margin: -8px -16px;
+  overflow: hidden;
+  display: block;
+  border-radius: 5px 15px 15px 15px;
+}
+
+.quark-picked {
+  background-color: rgba(62, 195, 128, 0.67) !important;
+}
+
+.quark-hide-clicked-button {
+  display: none !important;
+  animation-delay: .66s !important;
+}
+
+/* interaction recall styles */
+.quark.history,
+.quark.history .quark-content,
+.quark.history .quark-content .quark-button,
+.quark.history .quark-content .quark-button:hover {
+/*  transition: all 0ms !important; */
+}
+
+.quark.history {
+  opacity: .25;
+}
+
+.quark.say {
+  max-width: calc(100% - 8px);
+  /* display: inline-block; */
+}

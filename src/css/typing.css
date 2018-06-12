@@ -1,0 +1,32 @@
+/*
+ These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
+ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
+*/
+
+/* style "loading" or "typing" stae */
+
+.quark-typing {
+	width: 70px;
+	padding: 15px 16px;
+	height: 35px;
+}
+.dot {
+	background-color: rgb(255,255,255);
+	float: left;
+	height: 7px;
+	margin-left: 4px;
+	width: 7px;
+	animation-name: bounce_dot;
+	animation-duration: 2.24s;
+	animation-iteration-count: infinite;
+	animation-direction: normal;
+	border-radius: 5px;
+}
+.dot_1 { animation-delay: 0.45s; }
+.dot_2 { animation-delay: 1.05s; }
+.dot_3 { animation-delay: 1.35s; }
+@keyframes bounce_dot {
+	0% {}
+	50% { background-color:rgb(0,0,0); }
+	100% {}
+}

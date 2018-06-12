@@ -1,0 +1,113 @@
+/*
+ These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
+ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
+*/
+
+/* launcher styles */
+
+.botanic-green {
+  background-color: #45C282 !important;
+}
+
+.botanic-silver {
+  background-color: #F5F5F5 !important;
+}
+
+#hadron-toggle-1 svg {
+  fill: #fff;
+  height: 24px;
+  width: 24px;
+  position: relative;
+  left: 16px;
+  top: 16px;
+}
+
+#hadron-toggle-1 {
+  z-index: 10000;
+  position: fixed !important;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+#hadron-toggle-1:before,
+#hadron-toggle-1:after {
+  position: absolute;
+  content: '';
+  height: 100%;
+  width: 100%;
+  top: 0%;
+  left: 0%;
+  border-radius: 50%;
+  box-shadow: 0 0 15px rgba(160, 160, 160, 0.8);
+  animation: glow-grow 2s ease-out infinite;
+}
+
+#hadron-toggle-1:after {
+  animation-delay: .66s;
+}
+
+#hadron-iframe {
+  z-index: 10000;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+/*
+  width: 360px;
+  height: 500px;
+*/
+  box-shadow: 0 0 10px rgba(0, 0, 0, .25);
+  border: 1px solid rgba(128, 128, 128, 0.5);
+}
+
+iframe.quark_chat_standard {
+  width: 360px;
+  height: 500px;
+}
+
+iframe.quark_chat_tall {
+  width: 360px;
+  height: calc(100% - 2 * 20px);
+}
+
+iframe.quark_chat_fullscreen {
+  width: calc(100% - 2 * 20px);
+  height: calc(100% - 2 * 20px);
+}
+
+iframe.quark_chat_fullestscreen {
+  width: calc(100%);
+  height: calc(100%);
+  right: 0 !important;
+  top: 0 !important;
+}
+
+
+@keyframes glow-grow {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@media only screen and (min-width : 320px) and (max-width : 480px), screen and (min-width : 320px) and (max-width : 736px) and  (orientation: landscape)   {
+    #hadron-iframe {
+        position: fixed;
+        right: 0px;
+        bottom: inherit;
+        top: 0;
+        width: 100vw;
+        height: 100%;
+        box-shadow: 0 0 20px rgba(0, 0, 0, .25);
+        border: 1px solid rgba(128, 128, 128, 0.5);
+    }
+}
