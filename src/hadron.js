@@ -18,9 +18,8 @@ import './javascript/fx.js';
 import './javascript/fx_methods.js';
 import './javascript/detect.js';
 
-import './javascript/artyom.window.js';
+import Artyom from './javascript/artyom.js';
 import './javascript/materialize.min.js';
-import './javascript/Pizzicato.js';
 
 import Config from './config.example.js';
 
@@ -103,7 +102,7 @@ class Hadron {
       this.buttonClass        = this.getControlData("bot-button-class", "botanic-button");
       this.botSaysClass       = this.getControlData("bot-button-class", "botanic-green");
       this.botReplyClass      = this.getControlData("bot-reply-class", "botanic-silver");
-      this.showDebug          = this.getControlData("bot-show-debug", false, "bool");
+      this.showDebug          = this.getControlData("bot-show-debug", true, "bool");
       this.useFlowText        = this.getControlData("bot-use-flow-text", false, "bool");
       this.botIcon            = this.getControlData("bot-icon", ""); // this.relative_path + "css/images/hadron-48.png");
       this.showSentiment      = this.getControlData("bot-show-sentiment", false, "bool");
@@ -164,6 +163,23 @@ class Hadron {
       this.priorityInitialization();
       this.loadPrerequsites();
   	}
+
+    showConfigState() {
+      this.consoleLog("TTS Visible: " + this.ttsVisible);
+      this.consoleLog("TTS Enabled: " + this.ttsEnabled);
+
+      this.consoleLog("Reco Visible: " + this.recoVisible);
+      this.consoleLog("Reco Enabled: " + this.recoEnabled);
+      this.consoleLog("Reco Continuous: " + this.recoContinuous);
+
+      this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
+      this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");
+
+      this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
+      this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
+      this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", true, "bool");
+
+    }
 
     // This gets the process started based on the config values.
     runControl() {
@@ -728,7 +744,7 @@ class Hadron {
   // Start the recognizer
   startReco(showToast) {
     if (this.recoObject == false) {
-      this.recoObject = new window.Artyom();
+      this.recoObject = new Artyom();
 
       if (this.recoObject.recognizingSupported == false) {
         inControl.recoEnabled = false;
@@ -816,7 +832,7 @@ class Hadron {
     }
 
     if (inControl.recoObject == false) {
-      inControl.recoObject = new window.Artyom();
+      inControl.recoObject = new Artyom();
       inControl.recoObject.initialize({
         lang: language,
         debug: true, // Show what recognizes in the Console
@@ -915,7 +931,7 @@ class Hadron {
       turn.reply.reverse();
       for (var i = 0; i < turn.reply.length; i++) {
         ((el, count) => {
-          var clickEvent = 'inControl.answer("' + el.answer + '", "' + el.question + '", "' + el.type + '");';
+          var clickEvent = 'window.inControl.answer("' + el.answer + '", "' + el.question + '", "' + el.type + '");';
           var questionHTML = $('<a>', {class: "quark-button quark-choices btn left-align " + this.buttonClass, style:"animation-delay: " + this.animationTime / 2 * count + "ms", text: el.question, onClick: clickEvent});
           questionsHTML = questionsHTML + questionHTML.prop('outerHTML');
 
@@ -1249,24 +1265,26 @@ class Hadron {
   // Plays an audio file and stops an existing audio file.  Used by TTS, make be used by receiving an audio card.
   playAudio(url) {
     if (this.soundObject != false) {
-      this.soundObject.stop();
+      this.soundObject.pause();
     }
 
-    this.soundObject = new Pizzicato.Sound(url, () => {
-      this.soundObject.play();
-    });
+    this.showConfigState();
+
+    this.soundObject = new Audio(url);
+    this.soundObject.play();
+    this.consoleLog(url);
 
     // If it was off, keep it off! JEM
     // If there is a pause, no voice detected for a few seconds, turn off all reco.
     // If the user clicks the stop, it stops.
     // If the user says "stop listening" or something similar, it stops.
-    this.soundObject.on('end', function() {
+    this.soundObject.onended = function() {
       if (inControl.returnToReco == true) {
         setTimeout(function(){
           inControl.startReco(false);
         }, 200);
       }
-    });
+    };
   }
 
   // Calls MTOne to get chat response based on user input.
@@ -1609,7 +1627,7 @@ class Hadron {
 var inControl;
 
 function allJSClassesLoaded() {
-  inControl = new Hadron("inControl", ".hadron-button");
+  window.inControl = inControl = new Hadron("inControl", ".hadron-button");
   inControl.runControl();
 
   window.onload = function() {
@@ -1623,4 +1641,4 @@ function allJSClassesLoaded() {
   };
 }
 
-  allJSClassesLoaded();
+allJSClassesLoaded();

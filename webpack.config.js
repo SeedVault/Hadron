@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
 	mode: 'production',
@@ -23,9 +24,9 @@ module.exports = {
 				]
 			},
 			{
-        test: require.resolve('./src/javascript/zepto.min.js'),
-        use: 'imports-loader?this=>window'
-      }
+        			test: require.resolve('./src/javascript/zepto.min.js'),
+        			use: 'imports-loader?this=>window'
+      			}
 		]
 	},
 	output: {

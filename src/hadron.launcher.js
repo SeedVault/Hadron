@@ -5,6 +5,8 @@
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
+import Config from './config.example.js';
+
 import './css/launcher.css';
 
 // Bare style, bare interactions.  Click to grow.
@@ -17,7 +19,7 @@ class HadronLauncher {
     options = typeof(options) !== "undefined" ? options : {};
 
     this.chatBubbleSVG = '<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd"><path d="M24 20h-3v4l-5.333-4h-7.667v-4h2v2h6.333l2.667 2v-2h3v-8.001h-2v-2h4v12.001zm-6-6h-9.667l-5.333 4v-4h-3v-14.001h18v14.001zm-9-4.084h-5v1.084h5v-1.084zm5-2.916h-10v1h10v-1zm0-3h-10v1h10v-1z"/></svg>';
-    this.chatWindowURI = location.href.replace(/[^/]*$/, '') + 'hadron.php';
+    this.chatWindowURI = Config.all_your_bases_are_belong_to_us + 'hadron.php';
 
     this.target = target;
     this.hadronButton = jQuery(target).first();
@@ -32,6 +34,7 @@ class HadronLauncher {
     this.toggleIcon          = this.getControlData("bot-toggle-icon",  "chat_bubble_outline");
     this.needsMetaTag        = this.getControlData("bot-add-metatag",  true, "bool");
     this.launcherExternalCSS = this.getControlData("bot-launcher-external-css", "");
+    this.togglePulses        = this.getControlData("bot-toggle-pulses", true, "bool");
 
     this.checkForHTTPS();
     this.addMetaTag();
