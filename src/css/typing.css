@@ -6,9 +6,9 @@
 /* style "loading" or "typing" stae */
 
 .quark-typing {
-	width: 70px;
-	padding: 15px 16px;
-	height: 35px;
+	width: 36px;
+	padding: 14px 16px 4px 16px;
+	height: 17px;
 }
 .dot {
 	background-color: rgb(255,255,255);
@@ -27,6 +27,6 @@
 .dot_3 { animation-delay: 1.35s; }
 @keyframes bounce_dot {
 	0% {}
-	50% { background-color:rgb(0,0,0); }
+	50% { background-color:rgb(128,128,128); }
 	100% {}
 }

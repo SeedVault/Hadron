@@ -5,7 +5,8 @@
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
-import Config from './config.example.js';
+import Config from './config.sequoia.js';
+//import Config from './config.beta.js';
 
 import './css/launcher.css';
 
@@ -36,6 +37,7 @@ class HadronLauncher {
     this.launcherExternalCSS = this.getControlData("bot-launcher-external-css", "");
     this.togglePulses        = this.getControlData("bot-toggle-pulses", true, "bool");
 
+    this.getStylesheet();
     this.checkForHTTPS();
     this.addMetaTag();
     this.showChatToggle();
@@ -114,8 +116,6 @@ class HadronLauncher {
       if (this.togglePulses == true) {
         pulse = " pulse ";
       }
-
-      this.getStylesheet();
 
       this.hadronButton.hide();
       this.hadronButton.after('<a id="hadron-toggle-1" class="btn-floating btn-large ' + pulse + this.toggleClass + ' hadron-toggle">' + this.chatBubbleSVG + '</a>');

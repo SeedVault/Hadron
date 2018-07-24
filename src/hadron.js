@@ -1,9 +1,13 @@
-/*jshint esversion: 6 */
+ /*jshint esversion: 6 */
 
 /*
  These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
+
+
+//onended seems to not work as expected
+// cd ~/Development/Work\ Repos/SEED/Hadron/;npx webpack
 
 import './css/input.css';
 import './css/reply.css';
@@ -11,17 +15,28 @@ import './css/says.css';
 import './css/setup.css';
 import './css/sprites.css';
 import './css/typing.css';
-import './css/materialize.min.css';
 
-import './javascript/zepto.min.js';
-import './javascript/fx.js';
-import './javascript/fx_methods.js';
-import './javascript/detect.js';
+//JEM needs integrating or discarding.
+//import './css/plyr/plyr.css';
 
-import Artyom from './javascript/artyom.js';
-import './javascript/materialize.min.js';
+// Start up some global handler for errors to try to make hadron deal with odd errors.
+window.addEventListener('error', function (e) {
+  var error = e.error;
+  console.log(error);
+});
 
-import Config from './config.example.js';
+
+import $ from './javascript/jquery3/jquery-3.3.1.js';
+window.jQuery = $;
+window.$ = $;
+
+import './javascript/modernizr/modernizr-custom.js';
+import Artyom from './javascript/artyom/artyom.js';
+//import './javascript/plyr/plyr.js';
+
+import Config from './config.sequoia.js';
+//import Config from './config.beta.js';
+
 
 class Hadron {
   constructor(self, target, options) {
@@ -29,9 +44,19 @@ class Hadron {
 
   		this.name = self;
 
-      this.hadronButton = $(target).first();
+      this.hadronButton = jQuery(target).first();
+
+      this.hasWebGL              = false;
+      this.hasWebGLExtensions    = false;
+      this.hasSpeechSynthesis    = false;
+      this.hasSpeechRecognition  = false;
+      this.hasBatteryAPI         = false;
+      this.hasLowBattery         = false;
+      this.hasLowBandwidth       = false;
+
 
       //  These are internal vars
+      this.tokenChecked = false;
       this.botHasSpoken = false;  // This is set to true if the bot is meant to talk first and HAS responded.
       this.token = false;
       this.soundObject = false;
@@ -47,7 +72,9 @@ class Hadron {
       this.userDictation = false;
       this.ttsURIToCall = "";
 
-      //zepto controls AND this.hadronButton. These may act oddly because of the wrapping.
+      this.debugCommands = ["!caps", "!state", "!who"];
+
+      //jQuery controls AND this.hadronButton. These may act oddly because of the wrapping.
       this.container = false;
       this.quarkWrap = false;
       this.quarkTyping = false;
@@ -73,8 +100,9 @@ class Hadron {
       this.doNotTrackText = "I see you have <b>Do Not Track</b> enabled.  This chat respects your request but we can't vouch for the site it is on.";
 
       // Controlled by data parameters. Double check readme names, defaults, etc.
-      this.animationTime      = this.getControlData("bot-animation-speed", 150); // how long it takes to animate chat quarks, also set in CSS
-      this.typeSpeed          = this.getControlData("bot-type-speed", 10); // delay per character, to simulate the machine "typing"
+      this.animationTime      = this.getControlData("bot-animation-speed", 0); // 150 how long it takes to animate chat quarks, also set in CSS
+      this.delayBetweenBubbles= this.getControlData("bot-bubble-delay", 100); //250
+      this.typeSpeed          = this.getControlData("bot-type-speed", 1); // 10 delay per character, to simulate the machine "typing"
       this.botAMAText         = this.getControlData("bot-placeholder", "Ask me anything...");
       this.botWelcomeText     = this.getControlData("bot-welcome", "Say Hello or Hi to start chatting");
       this.rootFlowUUID       = this.getControlData("bot-user-data", "");
@@ -82,6 +110,7 @@ class Hadron {
       this.MTOneBaseUrl       = this.getControlData("bot-mtone-uri", Config.mtone_base_uri);
       this.botUserData        = this.getControlData("bot-user-data-json", "");
 
+      this.botsFirstMessage   = this.getControlData("bot-first-message", "hi");
       this.botTalksFirst      = this.getControlData("bot-talks-first", false, "bool");
 
       this.botResetOnLoad     = this.getControlData("bot-reset-on-load", false, "bool");
@@ -102,12 +131,13 @@ class Hadron {
       this.buttonClass        = this.getControlData("bot-button-class", "botanic-button");
       this.botSaysClass       = this.getControlData("bot-button-class", "botanic-green");
       this.botReplyClass      = this.getControlData("bot-reply-class", "botanic-silver");
-      this.showDebug          = this.getControlData("bot-show-debug", true, "bool");
+      this.showDebug          = this.getControlData("bot-show-debug", false, "bool");
       this.useFlowText        = this.getControlData("bot-use-flow-text", false, "bool");
       this.botIcon            = this.getControlData("bot-icon", ""); // this.relative_path + "css/images/hadron-48.png");
       this.showSentiment      = this.getControlData("bot-show-sentiment", false, "bool");
       this.isSecure           = this.getControlData("bot-is-secure", false, "bool");
 
+      this.hijackRefresh      = this.getControlData("bot-refresh-uri", "");
       this.showRefresh        = this.getControlData("bot-show-refresh", true, "bool");
       this.useLocalTTS        = this.getControlData("bot-local-tts", false, "bool");
       this.sizeClass          = this.getControlData("bot-size-class",   "standard");
@@ -123,14 +153,24 @@ class Hadron {
       this.fullscreen         = this.getControlData("bot-fullscreen", false, "bool");
       this.startFullscreen    = this.getControlData("bot-start-fullscreen", false, "bool");
 
+      this.botHandler         = this.getControlData("bot-handler", "text");
+
       this.externalCSS        = this.getControlData("bot-external-css", "");
       this.externalFont       = this.getControlData("bot-load-font", "");
 
-      this.localStorageAvailable = this.localStorageCheck() && this.recallInteractions > 0;
-      this.interactionsLS = "chat-quark-interactions";
-      this.tokenLS = "chat-quark-token-" + this.rootFlowUUID + "-" + this.botId + "-" + Config.also_known_as;
-      this.interactionsHistory = (this.localStorageAvailable && JSON.parse(localStorage.getItem(this.interactionsLS))) || [];
-      this.sentimentToIcoName = [ 'sentiment_very_dissatisfied', 'sentiment_very_dissatisfied', 'sentiment_dissatisfied', 'sentiment_dissatisfied', 'sentiment_dissatisfied', 'sentiment_neutral', 'sentiment_satisfied', 'sentiment_satisfied', 'sentiment_satisfied', 'sentiment_very_satisfied', 'sentiment_very_satisfied'];
+      this.localStorageAvailable = this.localStorageCheck();
+      this.interactionsLS     = "chat-quark-interactions";
+      this.tokenLS            = "chat-quark-token-" + this.rootFlowUUID + "-" + this.botId + "-" + Config.also_known_as;
+
+      if (this.recallInteractions != 0) {
+        this.consoleLog('recallInteractions: ' + this.recallInteractions);
+
+        this.interactionsHistory = (this.localStorageAvailable && JSON.parse(localStorage.getItem(this.interactionsLS))) || [];
+      } else {
+        this.interactionsHistory = {};
+      }
+
+      this.sentimentToIcoName  = [ 'sentiment_very_dissatisfied', 'sentiment_very_dissatisfied', 'sentiment_dissatisfied', 'sentiment_dissatisfied', 'sentiment_dissatisfied', 'sentiment_neutral', 'sentiment_satisfied', 'sentiment_satisfied', 'sentiment_satisfied', 'sentiment_very_satisfied', 'sentiment_very_satisfied'];
 
       this.twoTitles          = false;
 
@@ -160,10 +200,43 @@ class Hadron {
 
       this.botUserData = JSON.stringify(bud);
 
+      this.testToken(() => {
+        this.consoleLog('Token: ' + this.token);
+      });
+
+      this.consoleLog('Config: ');
+      this.consoleLog(Config);
+
+      this.checkDeviceCapabilites();
       this.priorityInitialization();
       this.loadPrerequsites();
   	}
 
+    // Check & flag what exists and if we need to monitor resources.
+    checkDeviceCapabilites() {
+      this.hasWebGL              = Modernizr.webgl;
+      this.hasWebGLExtensions    = Modernizr.webglextensions;
+      this.hasSpeechSynthesis    = Modernizr.speechsynthesis;
+      this.hasSpeechRecognition  = Modernizr.speechrecognition;
+      this.hasBatteryAPI         = Modernizr.batteryapi;
+      this.hasLowBattery         = Modernizr.lowbattery;
+      this.hasLowBandwidth       = Modernizr.lowbandwidth;
+
+      this.consoleLog('WebGL: ' + this.boolToString(this.hasWebGL));
+      this.consoleLog('WebGL Extensions: ' + this.boolToString(this.hasWebGLExtensions));
+      this.consoleLog('Synthesis: ' + this.boolToString(this.hasSpeechSynthesis));
+      this.consoleLog('Recognition: ' + this.boolToString(this.hasSpeechRecognition));
+      this.consoleLog('Battery API: ' + this.boolToString(this.hasBatteryAPI));
+      this.consoleLog('Low Battery: ' + this.boolToString(this.hasLowBattery));
+      this.consoleLog('Low Bandwidth: ' + this.boolToString(this.hasLowBandwidth));
+    }
+
+    // Convert bool to yes/no
+    boolToString(boolValue) {
+      return (boolValue) ? "YES" : "NO";
+    }
+
+    // Just for debugging.
     showConfigState() {
       this.consoleLog("TTS Visible: " + this.ttsVisible);
       this.consoleLog("TTS Enabled: " + this.ttsEnabled);
@@ -178,7 +251,6 @@ class Hadron {
       this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
       this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", true, "bool");
-
     }
 
     // This gets the process started based on the config values.
@@ -188,8 +260,6 @@ class Hadron {
 
     // Do some pre-run tests.
     priorityInitialization() {
-      this.getDeviceHint();
-
       // If the server isn't secure, don't bother enabling voice reco because it won't work.
       if (this.isSecure == false) {
         this.recoVisible = false;
@@ -303,38 +373,8 @@ class Hadron {
         localStorage.removeItem(test);
         return true;
       } catch (error) {
-        console.error(
-          "Your server does not allow storing data locally. Most likely it's because you've opened this page from your hard-drive. For testing you can disable your browser's security or start a localhost environment."
-        );
+        //console.error("Your server does not allow storing data locally. Most likely it's because you've opened this page from your hard-drive. For testing you can disable your browser's security or start a localhost environment.");
         return false;
-      }
-    }
-
-    // Create a class name based loosely on device
-    getDeviceHint() {
-      this.isMobile = false;
-
-      if ($.os.phone == true) {
-        this.disableTray = false;
-        this.recoEnabled = false;
-        this.recoVisible = false;
-        this.ttsEnabled = false;
-        this.isMobile = true;
-
-        return "quark-phone";
-      } else if ($.os.tablet == true) {
-        this.disableTray = false;
-        this.isMobile = true;
-        this.recoEnabled = false;
-        this.recoVisible = false;
-        this.ttsEnabled = false;
-
-        return "quark-tablet";
-      } else {
-        this.disableTray = false;
-        this.isMobile = false;
-
-        return "quark-desktop";
       }
     }
 
@@ -372,7 +412,7 @@ class Hadron {
       if (this.hadronButton) {
         this.hadronButton.hide();
 
-        var deviceHint = this.getDeviceHint();
+        var deviceHint = "quark-desktop";
 
         // Insert wrapper
         if (this.chromeless == false) {
@@ -398,10 +438,10 @@ class Hadron {
           var dashicons = $('<span>', {class: 'quark-dashicons quark-dashicons-no-alt'});
 
           if (this.showRefresh == true) {
-            dashicons.append('<a id="hadron-refresh" title="Refresh" class="z-depth-1 btn-floating btn hadron-refresh hadron-toggle-2 ' + this.refreshClass + ' hadron-toggle"><i class="material-icons">refresh</i></a>');
+            dashicons.append('<a id="hadron-refresh" title="" class="btn-floating hadron-refresh hadron-toggle-2 ' + this.refreshClass + ' hadron-toggle"><i class="material-icons">refresh</i></a>');
           }
 
-          dashicons.append('<a id="hadron-toggle-2" title="Close" class="z-depth-1 btn-floating btn hadron-toggle-2 ' + this.closeClass + ' hadron-toggle"><i class="material-icons">' + this.closeIcon + '</i></a>');
+          dashicons.append('<a id="hadron-toggle-2" title="Close" class="btn-floating hadron-toggle-2 ' + this.closeClass + ' hadron-toggle"><i class="material-icons">' + this.closeIcon + '</i></a>');
 
           var contentOverlay = $('<div>', {class: 'quark-content-overlay-container'});
           this.conversationArea = $('<div>', {id: 'quark-conversation-area'});
@@ -437,7 +477,11 @@ class Hadron {
 
           if (this.showRefresh == true) {
             $("#hadron-refresh").click(() => {
-              inControl.refreshContol();
+              if (inControl.hijackRefresh == "") {
+                inControl.refreshContol(true);
+              } else {
+                top.window.location.href = inControl.hijackRefresh;
+              }
             });
           }
         } else {
@@ -459,28 +503,49 @@ class Hadron {
 
         if (this.hideInput == false) {
           this.typeInput();
+          this.textAreaEnabled(false);
         }
 
         if (this.chrome != false) {
-          this.chrome.css({ opacity: 0.0 });
-          this.chrome.anim({ opacity: 1.0 }, 0.5, 'ease-out');
+          this.chrome.css({ opacity: 1.0 });
+          this.chrome.fadeTo(0.25, 1.0);
         }
 
         this.fullyLoaded = true;
 
         this.mediaView(this.mediaViewEnabled);
 
-        this.refreshContol();
+        this.refreshContol(false);
 
         // recall previous interactions
-        for (var i = 0; i < this.interactionsHistory.length; i++) {
-          this.addQuark(this.interactionsHistory[i].say, function() {}, this.interactionsHistory[i].reply, false);
+        if (this.recallInteractions != 0) {
+          var messages = [];
+          var buttons = [];
+          var messageObject;
+          for (var i = 0; i < this.interactionsHistory.length; i++) {
+            messageObject = { message: this.interactionsHistory[i].say, unadorned: false};
+            messages.push(messageObject);
+          }
+          // This isn't quite right.  It doesn't align properly and should be made a different color so you can tell it's older text.
+          var conv = { ice: { says: messages, reply: buttons.reverse() } };
+          this.talk(conv);
         }
       }
     }
 
     // Tests the token to ensure it is still valid.
     testToken(callback) {
+      if (this.isUndefined(inControl)) {
+        inControl = this;
+      }
+
+      if (inControl.tokenChecked == true) {
+        callback();
+        return;
+      }
+
+      inControl.tokenChecked = true;
+
       inControl.token = this.tokenRead();
 
       if (inControl.token == "") {
@@ -496,37 +561,51 @@ class Hadron {
           dataType: 'JSON',
           context: this,
           success: function(result){
-            var json_obj = JSON.parse(result);
-
-            if (json_obj.response.information.code  <= 202) {
+            if (result.response.information.code  <= 202) {
               callback();
             } else {
-                inControl.token = "";
-                inControl.tokenSave("");
-                callback();
+              inControl.token = "";
+              inControl.tokenSave("");
+              callback();
             }
           }
       });
     }
 
-    refreshContolInner() {
+    refreshContolInner(userRequested) {
+      this.textAreaEnabled(false);
+
       if (this.botTalksFirst == true) {
         setTimeout(() => {
-          var responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
+          var responseText;
 
-          });
+          if (userRequested == true || this.botResetOnLoad == true) {
+            responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
+              inControl.textAreaEnabled(true);
+            });
+         } else {
+           responseText = this.callMTOne(this.botsFirstMessage, function(botSaid, cards) {
+             inControl.textAreaEnabled(true);
+           });
+         }
         }, 20);
       } else {
         setTimeout(() => {
-          var responseText = this.callMTOne(":reset", function(botSaid, cards) {
+          if (userRequested == true || this.botResetOnLoad == true) {
+            var responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
+              inControl.talk(false);
+              inControl.textAreaEnabled(true);
+            });
+          } else {
             inControl.talk(false);
-          });
+            inControl.textAreaEnabled(true);
+          }
         }, 20);
       }
     }
 
     // Reloads the control. Respects botTalksFirst flag
-    refreshContol() {
+    refreshContol(userRequested) {
       this.mediaView(false);
 
       inControl.quarkWrap.html('');
@@ -539,10 +618,10 @@ class Hadron {
           inControl.talk(convo);
 
           setTimeout(() => {
-            inControl.refreshContolInner();
+            inControl.refreshContolInner(userRequested);
           }, animationDelay);
         } else {
-          inControl.refreshContolInner();
+          inControl.refreshContolInner(userRequested);
         }
       });
     }
@@ -560,28 +639,53 @@ class Hadron {
         return;
       }
 
-      // limit number of saves
-      if (this.interactionsHistory.length > this.recallInteractions)
-        this.interactionsHistory.shift(); // removes the oldest (first) save to make space
+      if (this.recallInteractions == 0) {
+        return;
+      }
 
       // do not memorize buttons; only user input gets memorized:
       if (say.includes("quark-button") && reply !== "reply reply-freeform" && reply !== "reply reply-pick") {
         return;
       }
 
+      // Don't save a welcome message.
+      if (say.includes(this.botWelcomeText)) {
+        return;
+      }
+
+      // limit number of saves
+      if (this.interactionsHistory.length >= this.recallInteractions) {
+        this.interactionsHistory.shift(); // removes the oldest (first) save to make space
+      }
+
       // save to memory
       this.interactionsHistory.push({ say: say, reply: reply });
+      //this.botWelcomeText
+      this.consoleLog("-----HISTORYSAVE-----");
+      this.consoleLog(say);
+      this.consoleLog(reply);
+      this.consoleLog(this.interactionsHistory);
     }
 
     // commit save to localStorage
     interactionsSaveCommit() {
-      if (!this.localStorageAvailable) return;
+      if (!this.localStorageAvailable) {
+        return;
+      }
+
+      if (this.recallInteractions == 0) {
+        return;
+      }
+
       localStorage.setItem(this.interactionsLS, JSON.stringify(this.interactionsHistory));
+
+      this.consoleLog("-----HISTORYSAVECOMMIT-----");
+      this.consoleLog(this.interactionsHistory);
     }
 
     // read token from local storage
     tokenRead() {
-      if (this.localStorageCheck() == false) {
+      if (!this.localStorageAvailable) {
         return "";
       } else {
         var token = localStorage.getItem(this.tokenLS) || "";
@@ -600,10 +704,25 @@ class Hadron {
 
     // save the token to local storage
     tokenSave(token) {
-      if (this.localStorageCheck == false) {
+      if (!this.localStorageAvailable) {
         return;
       } else {
         localStorage.setItem(this.tokenLS, token);
+      }
+    }
+
+    textAreaEnabled(state) {
+      if (state == true) {
+        setTimeout(() => {
+          this.inputText.prop('disabled', false);
+          this.inputText.removeClass('noinput');
+          this.inputText.val('');
+          this.inputText.focus();
+        }, 500);
+      } else {
+        this.inputText.prop('disabled', true);
+        this.inputText.addClass('noinput');
+        this.inputText.val('');
       }
     }
 
@@ -623,7 +742,7 @@ class Hadron {
           if (this.recoEnabled) {
             imageClass = 'quark-reco-button-on';
 
-            M.toast({html: 'I\'m listening.', classes: 'rounded'});
+            //M.toast({html: 'I\'m listening.', classes: 'rounded'});
 
             // Start reco.
             this.startReco(true);
@@ -686,7 +805,7 @@ class Hadron {
 
       inputWrap.append(this.inputText);
 
-      //JEM The inside is a mess.  Need to make it more zepto friendly.
+      //JEM refactor
       this.inputText.keypress((e) => {
         if (e.keyCode == 13) {
           e.preventDefault();
@@ -697,11 +816,16 @@ class Hadron {
             return;
           }
 
-          typeof(this.quarkQueue) !== false ? clearTimeout(this.quarkQueue) : false; // allow user to interrupt the bot
+          // allow user to interrupt the bot
+          if (typeof(this.quarkQueue) !== false)  {
+            clearTimeout(this.quarkQueue);
+          }
 
           var lastQuark = $(".quark.say");
           lastQuark = lastQuark[lastQuark.length - 1];
-          $(lastQuark).hasClass("reply") && !$(lastQuark).hasClass("reply-freeform") ? $(lastQuark).addClass("quark-hidden") : false;
+          if ($(lastQuark).hasClass("reply") && !$(lastQuark).hasClass("reply-freeform")) {
+            $(lastQuark).addClass("quark-hidden");
+          }
 
           var styledUserInput = this.inputText.val();
           var sentimentPlaceholder = "";
@@ -719,6 +843,11 @@ class Hadron {
             function() {},
             "reply reply-freeform"
           );
+
+          if (this.isCommand(userSaid) == true) {
+            this.inputText.val("");
+            return;
+          }
 
           // call MTOne after a slight delay.  MTOne can answer so quickly that it breaks behavior.
           // var userSaid = this.inputText.val();
@@ -741,8 +870,61 @@ class Hadron {
       this.inputText.focus();
   }
 
+  // Is the input a hadron command?
+  isCommand(userSaid) {
+    var ci = this.debugCommands.indexOf(userSaid);
+
+    if (ci == -1) {
+      return false;
+    } else {
+      if (userSaid == '!caps') {
+        var msg = [];
+        msg.push('Device Capabilities');
+        msg.push('WebGL: ' + this.boolToString(this.hasWebGL));
+        msg.push('WebGL Extensions: ' + this.boolToString(this.hasWebGLExtensions));
+        msg.push('Speech Synthesis: ' + this.boolToString(this.hasSpeechSynthesis));
+        msg.push('Speech Recognition: ' + this.boolToString(this.hasSpeechRecognition));
+        msg.push('Battery API: ' + this.boolToString(this.hasBatteryAPI));
+        msg.push('Low Battery: ' + this.boolToString(this.hasLowBattery));
+        msg.push('Low Bandwidth: ' + this.boolToString(this.hasLowBandwidth));
+
+        var convo = { ice: { says: msg, reply: [] } };
+
+        setTimeout(() => {
+          this.talk(convo);
+        }, 1000);
+
+        return true;
+      } else if (userSaid == "!state") {
+        var msg = [];
+        msg.push('Hadron State');
+        msg.push('TTS Visible: ' + this.boolToString(this.ttsVisible));
+        msg.push('TTS Enabled: ' + this.boolToString(this.ttsEnabled));
+        msg.push('Reco Visible: ' + this.boolToString(this.recoVisible));
+        msg.push('Reco Enabled: ' + this.boolToString(this.recoEnabled));
+        msg.push('Reco Continuous: ' + this.boolToString(this.recoContinuous));
+
+        var convo = { ice: { says: msg, reply: [] } };
+
+        setTimeout(() => {
+          this.talk(convo);
+        }, 1000);
+
+        return true;
+      } else if (userSaid == '!who') {
+        return true;
+      }
+
+      return false;
+    }
+  }
+
   // Start the recognizer
   startReco(showToast) {
+    if (inControl.recoEnabled == false) {
+      return;
+    }
+
     if (this.recoObject == false) {
       this.recoObject = new Artyom();
 
@@ -753,7 +935,7 @@ class Hadron {
     }
 
     if (showToast) {
-      M.toast({html: 'I\'m listening.', classes: 'rounded', displayLength: 1000});
+      //M.toast({html: 'I\'m listening.', classes: 'rounded', displayLength: 1000});
     }
 
     inControl.recoEnabled = true;
@@ -875,7 +1057,7 @@ class Hadron {
     var areEqual = this.caseInsensitiveCompare(phrase, this.stopCommand);
 
     if (areEqual) {
-      M.toast({html: 'I am no longer listening.', classes: 'rounded', displayLength: 1000});
+      //M.toast({html: 'I am no longer listening.', classes: 'rounded', displayLength: 1000});
 
       this.inputText.val('');
       this.stopReco();
@@ -914,7 +1096,9 @@ class Hadron {
     this._convo = Object.assign(this._convo, convo); // POLYFILL REQUIRED FOR OLDER BROWSERS
 
     this.reply(this._convo[here]);
-    here ? (this.standingAnswer = here) : false;
+    if (here) {
+      this.standingAnswer = here;
+    }
   }
 
   // This starts the reply process, adds the user input, does ... etc
@@ -971,9 +1155,20 @@ class Hadron {
       if (botSaid[index].speech != "") {
         var botSaidAfter = this.parseBotResponse(botSaid[index].speech);
 
-        messageObject = { message: botSaidAfter, unadorned: false};
+        var withMedia = this.convertMedia(botSaidAfter);
+
+        if (withMedia == false) {
+          messageObject = { message: botSaidAfter, unadorned: false};
+        } else {
+          messageObject = { message: withMedia, unadorned: true};
+        }
         messages.push(messageObject);
       }
+    }
+
+    if (botSaid.length == 0) {
+        messageObject = { message: "Odd. The bot was silent.", unadorned: false};
+        messages.push(messageObject);
     }
 
     var media = "";
@@ -1012,9 +1207,9 @@ class Hadron {
     this.talk(conv);
 
     $('#mediaplayer').on('ended', function() {
-      console.log('ended');
+      //console.log('ended');
       if (inControl.returnToReco == true) {
-        console.log('recoResume');
+        //console.log('recoResume');
         setTimeout(function(){
           inControl.startReco(false);
         }, 200);
@@ -1048,6 +1243,39 @@ class Hadron {
 
     return botSaid;
   }
+
+
+  // Create an embed/media/etc based on some input.
+  convertMedia(html) {
+      var cls = 'class="responsive-video"';
+      var frm = '<div class="responsive-container"><iframe '+cls+' src="//_URL_" frameborder="0" allowfullscreen id="mediaplayer"></iframe></div>';
+      var converts = [
+        {
+          rx: /^(?:https?:)?\/\/(?:www\.)?vimeo\.com\/([^\?&"]+).*$/g,
+          tmpl: frm.replace('_URL_',"player.vimeo.com/video/$1")
+        },
+        {
+          rx: /^.*(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|user\/.+\/)?([^\?&"]+).*$/g,
+          tmpl: frm.replace('_URL_',"www.youtube.com/embed/$1")
+        },
+        {
+          rx: /^.*(?:https?:\/\/)?(?:www\.)?(?:youtube-nocookie\.com)\/(?:watch\?v=|embed\/|v\/|user\/.+\/)?([^\?&"]+).*$/g,
+          tmpl: frm.replace('_URL_',"www.youtube-nocookie.com/embed/$1")
+        },
+        {
+          rx: /(^[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?\.(?:jpe?g|gif|png|svg)\b.*$)/gi,
+          tmpl: '<a '+cls+' href="$1" target="_blank"><img src="$1" /></a>'
+        },
+      ];
+      for (var i in converts)
+        if (converts[i].rx.test(html.trim())) {
+
+          return html.trim().replace(converts[i].rx, converts[i].tmpl);
+        }
+
+      return false;
+  }
+
 
   // This handles a specific card, it will be changed so we can dynamically insert a replacement renderer.
   // Also support adding some JS through another class that gives new renderer types rather than clutter the main class.
@@ -1221,13 +1449,13 @@ class Hadron {
       mediaType = "video/youtube";
       media = '<iframe class="responsive-video" src="' + video + '" frameborder="0" allowfullscreen></iframe>';
 
-      console.log('URL passed the test');
+      //console.log('URL passed the test');
     } else if(video.indexOf("//vimeo") !== -1) {
       // Vimeo embed.
       mediaType = "video/vimeo";
       media = '<iframe src="' + video + '" class="responsive-video" frameborder="0"></iframe>';
 
-      console.log('URL passed the test');
+      //console.log('URL passed the test');
     } else {
       // Native...
       media += '<source src="' + video + '" type="' + mediaType + '">';
@@ -1264,17 +1492,17 @@ class Hadron {
 
   // Plays an audio file and stops an existing audio file.  Used by TTS, make be used by receiving an audio card.
   playAudio(url) {
-    if (this.soundObject != false) {
-      this.soundObject.pause();
-    }
-
     this.showConfigState();
+
+    if (this.soundObject != false) {
+      this.soundObject = false;
+    }
 
     this.soundObject = new Audio(url);
     this.soundObject.play();
     this.consoleLog(url);
 
-    // If it was off, keep it off! JEM
+    // If it was off, keep it off!
     // If there is a pause, no voice detected for a few seconds, turn off all reco.
     // If the user clicks the stop, it stops.
     // If the user says "stop listening" or something similar, it stops.
@@ -1294,7 +1522,13 @@ class Hadron {
 
     this.token = this.tokenRead();
 
-    uri = this.MTOneBaseUrl + "social/chatbot/?service=chatbot_router&uid=" + this.botId + "&type=text&handler=text&text=" + encodeURIComponent(text) + "&user_data_json=" + encodeURI(this.botUserData);
+    // Try to standardize any token value that could have been saved or read.
+    if (this.token == false || this.token == "" || this.isUndefined(this.token) == true) {
+      this.token = "";
+      this.tokenSave(this.token);
+    }
+
+    uri = this.MTOneBaseUrl + "social/chatbot/?service=chatbot_router&uid=" + this.botId + "&type=text&handler=" + this.botHandler + "&text=" + encodeURIComponent(text) + "&user_data_json=" + encodeURI(this.botUserData);
     if (this.token !== "") {
       uri += "&token=" + this.token;
     }
@@ -1307,9 +1541,7 @@ class Hadron {
         type: 'get',
         dataType: 'JSON',
         context: this,
-        success: function(result){
-          var json_obj = JSON.parse(result);
-
+        success: function(json_obj){
           if (inControl.isUndefined(json_obj.token) == false) {
             this.tokenSave(json_obj.token);
           }
@@ -1518,7 +1750,6 @@ class Hadron {
 
         for (var i = 0; i < quarkButtons.length; i++) {
           ;(function(el) {
-            //JEM This hides the buttons that were not chosen.
             if (inControl.hideButtonsWhenClicked) {
               $(el).addClass("quark-hide-clicked-button");
               $('.quark-button-wrap').hide();
@@ -1540,13 +1771,18 @@ class Hadron {
     var minTypingWait = live ? animationTime * 6 : 0;
     if (say.length * typeSpeed > animationTime && reply == "") {
       wait += typeSpeed * say.length;
-      wait < minTypingWait ? (wait = minTypingWait) : false;
+      if (wait < minTypingWait) {
+          wait = minTypingWait;
+      }
+
       setTimeout(() => {
         this.quarkTyping.removeClass("imagine");
       }, animationTime);
     }
 
-    live && setTimeout(() => { this.quarkTyping.addClass("imagine"); }, wait - animationTime * 2);
+    if (live) {
+       setTimeout(() => { this.quarkTyping.addClass("imagine"); }, wait - animationTime * 2);
+     }
 
     this.quarkQueue = setTimeout(() => {
       this.quark.removeClass("imagine");
@@ -1557,7 +1793,15 @@ class Hadron {
         quarkWidthCalc = 360 * 0.4;
       }
 
+      var maxQuarkWidth = this.quarkWrap.width() - 35;
+      //this.consoleLog("qWrap: " + maxQuarkWidth);
+
+      if (quarkWidthCalc > maxQuarkWidth) {
+        quarkWidthCalc = maxQuarkWidth;
+      }
+
       quarkWidthCalc = quarkWidthCalc + "px";
+      //this.consoleLog("qw:" + quarkWidthCalc);
 
       var isResponsive = false;
       var isResponsiveImage = this.quark.find('.responsive-img');
@@ -1581,8 +1825,10 @@ class Hadron {
       posted();
 
       // save the interaction
-      this.interactionsSave(say, reply);
-      !this.iceBreaker && this.interactionsSaveCommit(); // save point
+      if (!this.iceBreaker) {
+        this.interactionsSave(say, reply);
+        this.interactionsSaveCommit();
+      }
 
       // animate scrolling
       var containerHeight = this.container[0].offsetHeight;
@@ -1600,8 +1846,6 @@ class Hadron {
               if ((inControl.quarkWrap[0].scrollHeight - inControl.quarkWrap[0].scrollTop) > containerHeight) {
                 var sTop = inControl.quarkWrap[0].scrollTop + scrollHop;
                 inControl.quarkWrap[0].scrollTop = sTop;
-
-                inControl.consoleLog(containerHeight + ", " + inControl.quarkWrap[0].scrollHeight + ", " + inControl.quarkWrap[0].scrollTop);
               }
             }, i * 5);
           })();

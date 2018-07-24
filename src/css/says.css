@@ -55,7 +55,7 @@
 .quark.imagine {
   transform: scale(0);
 /*  transition: all 200ms, height 200ms 1s, padding 200ms 1s; */
-  max-height: 35px !important;
+  max-height: 5px !important;
 }
 
 .quark-sentiment-placeholder {

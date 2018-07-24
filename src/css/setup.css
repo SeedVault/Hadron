@@ -70,9 +70,10 @@ a.botanic-button {
 }
 
 .quark-content-overlay-container .input-wrap textarea {
-	margin: 0 0 0 0;
-  padding: 15px 0 0 10px;
+	margin: 15px 0 0 0;
+  padding: 0px 0 0 0px;
 	width: calc(100% - 80px);
+  height: 28px;
 	resize: none;
   border-width: 0 0 0 0;
   border-style: solid none none none;
@@ -82,7 +83,6 @@ a.botanic-button {
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
-  height: 50px !important;
   font-size: 14px !important;
   font-family: 'Lato', sans-serif;
   font-weight: normal;
@@ -103,6 +103,7 @@ a.botanic-button {
 
 .quark_chat_tall .quark-content-overlay-container .input-wrap {
   margin: 5px 5px 5px 5px !important;
+  padding: 0px 0px 0px 10px;
 }
 
 .quark_chat_standard .quark-content-overlay-container .input-wrap {
@@ -456,9 +457,29 @@ a.botanic-button {
   margin: 0 auto;
 }
 
+.responsive-container {
+    position: relative;
+    overflow: hidden;
+    padding-top: 56.25%;
+    clear: both;
+}
+
+.noinput {
+  /* background-color: silver; */
+  color: gray !important;
+}
+
 video, iframe.responsive-video {
-    max-width: calc(100vw - 10px) !important;
-    height: auto;
+    max-width: calc(100vw - 30px) !important;
+/*    height: auto; */
+    margin-top: 10px;
+
+    position: absolute;
+    top: 0;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    border: 0;
 }
 
 /* Pedro added */
@@ -495,4 +516,116 @@ video, iframe.responsive-video {
         height: auto;
         flex: 1;
     }
+}
+
+
+.material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}
+
+
+.material-icons {
+    text-rendering: optimizeLegibility;
+    -webkit-font-feature-settings: 'liga';
+    -moz-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+}
+
+.btn-floating {
+    display: inline-block;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    padding: 0;
+    background-color: #26a69a;
+    border-radius: 50%;
+    -webkit-transition: .3s;
+    transition: .3s;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.btn-floating i {
+    width: inherit;
+    display: inline-block;
+    text-align: center;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 40px;
+}
+
+.btn i, .btn-large i, .btn-floating i, .btn-large i, .btn-flat i {
+    font-size: 1.3rem;
+    line-height: inherit;
+}
+
+.btn, .btn-large {
+    text-decoration: none;
+    color: #fff;
+    background-color: #26a69a;
+    text-align: center;
+    letter-spacing: .5px;
+    -webkit-transition: .2s ease-out;
+    transition: .2s ease-out;
+    cursor: pointer;
+}
+
+.btn, .btn-large, .btn-floating, .btn-large, .btn-flat {
+    font-size: 1rem;
+    outline: 0;
+}
+
+.btn, .btn-large, .btn-flat {
+    border: none;
+    border-radius: 2px;
+    display: inline-block;
+    height: 36px;
+    line-height: 36px;
+    padding: 0 2rem;
+    text-transform: uppercase;
+    vertical-align: middle;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-floating:before {
+    border-radius: 0;
+}
+
+.transparent {
+    background-color: transparent !important;
+}
+
+a {
+    text-decoration: none;
+}
+
+a {
+    color: #039be5;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+a {
+    background-color: transparent;
+}
+
+*, *:before, *:after {
+    -webkit-box-sizing: inherit;
+    box-sizing: inherit;
 }

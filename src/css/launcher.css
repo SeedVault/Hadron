@@ -42,7 +42,7 @@
   left: 0%;
   border-radius: 50%;
   box-shadow: 0 0 15px rgba(160, 160, 160, 0.8);
-  animation: glow-grow 2s ease-out infinite;
+  animation: glow-grow 10s ease-out infinite;
 }
 
 #hadron-toggle-1:after {
@@ -54,10 +54,6 @@
   position: fixed;
   right: 20px;
   bottom: 20px;
-/*
-  width: 360px;
-  height: 500px;
-*/
   box-shadow: 0 0 10px rgba(0, 0, 0, .25);
   border: 1px solid rgba(128, 128, 128, 0.5);
 }
