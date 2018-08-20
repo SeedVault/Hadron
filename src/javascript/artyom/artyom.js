@@ -14,7 +14,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference path="artyom.d.ts" />
 // Remove "export default " keywords if willing to build with `npm run artyom-build-window`
 var Artyom = (function () {
-    // Triggered at the declaration of 
+    // Triggered at the declaration of
     function Artyom() {
         this.ArtyomCommands = [];
         this.ArtyomVoicesIdentifiers = {
@@ -272,7 +272,7 @@ var Artyom = (function () {
                 }
                 // Process RegExp
                 if (opcion instanceof RegExp) {
-                    // If RegExp matches 
+                    // If RegExp matches
                     if (opcion.test(voz)) {
                         _this.debug(">> REGEX " + opcion.toString() + " MATCHED AGAINST " + voz + " WITH INDEX " + c + " IN COMMAND ", "info");
                         encontrado = parseInt(c.toString());
@@ -623,7 +623,7 @@ var Artyom = (function () {
                     _this.debug("Continuous mode enabled, restarting", "info");
                 }
                 else {
-                    console.error("Verify the microphone and check for the table of errors in sdkcarlos.github.io/sites/artyom.html to solve your problem. If you want to give your user a message when an error appears add an artyom listener");
+                    console.log("Verify the microphone and check for the table of errors in sdkcarlos.github.io/sites/artyom.html to solve your problem. If you want to give your user a message when an error appears add an artyom listener");
                 }
                 _this.triggerEvent(_this.ArtyomGlobalEvents.COMMAND_RECOGNITION_END, {
                     code: "continuous_mode_enabled",

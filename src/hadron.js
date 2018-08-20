@@ -6,8 +6,23 @@
 */
 
 
+const Config = {
+  also_known_as                  : `${Configalso_known_as}`,
+  all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
+  mtone_base_uri                 : `${Configmtone_base_uri}`,
+  author_tool_domain             : `${Configauthor_tool_domain}`,
+  api_key                        : `${Configapi_key}`
+};
+
+
 //onended seems to not work as expected
-// cd ~/Development/Work\ Repos/SEED/Hadron/;npx webpack
+// Show progress bar if possible during load of threejs
+
+// If you minimize as the bubble is being built, the text width is messed up and looks awful, very narrow.
+
+//DOMMouseScroll preventDefault on the hadron iframe if possible.  Only let hadron scroll when mouse wheel is used OVER hadron
+//Better way to process video OR disable.  Better = only do the exchange of the link and/or a href entirely but NOT the whole string.
+//localStorage
 
 import './css/input.css';
 import './css/reply.css';
@@ -16,8 +31,8 @@ import './css/setup.css';
 import './css/sprites.css';
 import './css/typing.css';
 
-//JEM needs integrating or discarding.
-//import './css/plyr/plyr.css';
+
+window.inAvatar = false;
 
 // Start up some global handler for errors to try to make hadron deal with odd errors.
 window.addEventListener('error', function (e) {
@@ -32,12 +47,15 @@ window.$ = $;
 
 import './javascript/modernizr/modernizr-custom.js';
 import Artyom from './javascript/artyom/artyom.js';
-//import './javascript/plyr/plyr.js';
 
-import Config from './config.sequoia.js';
-//import Config from './config.beta.js';
+// Load the storage facade
+import {HadronStorage} from './hadron.storage.js';
 
+// Load Avatar support
+import {HadronAvatar} from './hadron.avatar.js';
+import {HadronActr} from './hadron.actr.js';
 
+// The core class of Hadron
 class Hadron {
   constructor(self, target, options) {
       options = typeof(options) !== "undefined" ? options : {};
@@ -54,6 +72,7 @@ class Hadron {
       this.hasLowBattery         = false;
       this.hasLowBandwidth       = false;
 
+      this.hadronStorage         = new HadronStorage("hadronStorage");
 
       //  These are internal vars
       this.tokenChecked = false;
@@ -72,7 +91,7 @@ class Hadron {
       this.userDictation = false;
       this.ttsURIToCall = "";
 
-      this.debugCommands = ["!caps", "!state", "!who"];
+      this.debugCommands = ["!!caps", "!!state", "!!config", "!!actr", "!!3js"];
 
       //jQuery controls AND this.hadronButton. These may act oddly because of the wrapping.
       this.container = false;
@@ -97,16 +116,21 @@ class Hadron {
       this.mediaOverlayResponse = false;
       this.mediaViewPreservedState = false;
       this.doNotTrack = false;
+      this.orderQuarksRunning = false;
+
+      this.firstVolleyPause = 1000; // Wait one second after the first volley, just in case.
+
       this.doNotTrackText = "I see you have <b>Do Not Track</b> enabled.  This chat respects your request but we can't vouch for the site it is on.";
 
       // Controlled by data parameters. Double check readme names, defaults, etc.
-      this.animationTime      = this.getControlData("bot-animation-speed", 0); // 150 how long it takes to animate chat quarks, also set in CSS
-      this.delayBetweenBubbles= this.getControlData("bot-bubble-delay", 100); //250
-      this.typeSpeed          = this.getControlData("bot-type-speed", 1); // 10 delay per character, to simulate the machine "typing"
+      this.animationTime      = this.getControlData("bot-animation-speed", 10); // 0, 150 how long it takes to animate chat quarks, also set in CSS
+      this.delayBetweenBubbles= this.getControlData("bot-bubble-delay", 10); //100, 250
+      this.typeSpeed          = this.getControlData("bot-type-speed", 5); // 1, 10 delay per character, to simulate the machine "typing"
       this.botAMAText         = this.getControlData("bot-placeholder", "Ask me anything...");
       this.botWelcomeText     = this.getControlData("bot-welcome", "Say Hello or Hi to start chatting");
       this.rootFlowUUID       = this.getControlData("bot-user-data", "");
       this.chromeless         = this.getControlData("bot-without-chrome", false, "bool");
+      this.botAutoOpens       = this.getControlData("bot-auto-opens", false, "bool");
       this.MTOneBaseUrl       = this.getControlData("bot-mtone-uri", Config.mtone_base_uri);
       this.botUserData        = this.getControlData("bot-user-data-json", "");
 
@@ -120,7 +144,7 @@ class Hadron {
 
       this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
-      this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", true, "bool");
+      this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", false, "bool");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.use3DAvatar        = this.getControlData("bot-uses-3d-avatar", false, "bool");
@@ -158,14 +182,14 @@ class Hadron {
       this.externalCSS        = this.getControlData("bot-external-css", "");
       this.externalFont       = this.getControlData("bot-load-font", "");
 
-      this.localStorageAvailable = this.localStorageCheck();
+      this.storageAvailable   = true;
       this.interactionsLS     = "chat-quark-interactions";
       this.tokenLS            = "chat-quark-token-" + this.rootFlowUUID + "-" + this.botId + "-" + Config.also_known_as;
 
       if (this.recallInteractions != 0) {
         this.consoleLog('recallInteractions: ' + this.recallInteractions);
 
-        this.interactionsHistory = (this.localStorageAvailable && JSON.parse(localStorage.getItem(this.interactionsLS))) || [];
+        this.interactionsHistory = (this.storageAvailable && JSON.parse(inControl.hadronStorage.getItem(this.interactionsLS))) || [];
       } else {
         this.interactionsHistory = {};
       }
@@ -201,11 +225,11 @@ class Hadron {
       this.botUserData = JSON.stringify(bud);
 
       this.testToken(() => {
-        this.consoleLog('Token: ' + this.token);
+      //  this.consoleLog('Token: ' + this.token);
       });
 
-      this.consoleLog('Config: ');
-      this.consoleLog(Config);
+      //this.consoleLog('Config: ');
+      //this.consoleLog(Config);
 
       this.checkDeviceCapabilites();
       this.priorityInitialization();
@@ -221,14 +245,6 @@ class Hadron {
       this.hasBatteryAPI         = Modernizr.batteryapi;
       this.hasLowBattery         = Modernizr.lowbattery;
       this.hasLowBandwidth       = Modernizr.lowbandwidth;
-
-      this.consoleLog('WebGL: ' + this.boolToString(this.hasWebGL));
-      this.consoleLog('WebGL Extensions: ' + this.boolToString(this.hasWebGLExtensions));
-      this.consoleLog('Synthesis: ' + this.boolToString(this.hasSpeechSynthesis));
-      this.consoleLog('Recognition: ' + this.boolToString(this.hasSpeechRecognition));
-      this.consoleLog('Battery API: ' + this.boolToString(this.hasBatteryAPI));
-      this.consoleLog('Low Battery: ' + this.boolToString(this.hasLowBattery));
-      this.consoleLog('Low Bandwidth: ' + this.boolToString(this.hasLowBandwidth));
     }
 
     // Convert bool to yes/no
@@ -238,19 +254,12 @@ class Hadron {
 
     // Just for debugging.
     showConfigState() {
-      this.consoleLog("TTS Visible: " + this.ttsVisible);
-      this.consoleLog("TTS Enabled: " + this.ttsEnabled);
+      this.consoleLog("TTS Visible: "     + this.ttsVisible);
+      this.consoleLog("TTS Enabled: "     + this.ttsEnabled);
 
-      this.consoleLog("Reco Visible: " + this.recoVisible);
-      this.consoleLog("Reco Enabled: " + this.recoEnabled);
+      this.consoleLog("Reco Visible: "    + this.recoVisible);
+      this.consoleLog("Reco Enabled: "    + this.recoEnabled);
       this.consoleLog("Reco Continuous: " + this.recoContinuous);
-
-      this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
-      this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");
-
-      this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
-      this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
-      this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", true, "bool");
     }
 
     // This gets the process started based on the config values.
@@ -259,9 +268,19 @@ class Hadron {
     }
 
     // Do some pre-run tests.
+    //JEM honor the caps reported during startup, disable functionality or hide if not allowed.
     priorityInitialization() {
       // If the server isn't secure, don't bother enabling voice reco because it won't work.
       if (this.isSecure == false) {
+        this.recoVisible = false;
+        this.ttsVisible = false;
+      }
+
+      if (this.hasSpeechSynthesis == false) {
+        this.ttsVisible = false;
+      }
+
+      if (this.hasSpeechRecognition == false) {
         this.recoVisible = false;
       }
 
@@ -365,18 +384,6 @@ class Hadron {
       return url;
     }
 
-    // is local storage available?
-    localStorageCheck() {
-      var test = "chat-quark-storage-test";
-      try {
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        return true;
-      } catch (error) {
-        //console.error("Your server does not allow storing data locally. Most likely it's because you've opened this page from your hard-drive. For testing you can disable your browser's security or start a localhost environment.");
-        return false;
-      }
-    }
 
     // Custom stylesheet from user.
     getStylesheet() {
@@ -513,6 +520,21 @@ class Hadron {
 
         this.fullyLoaded = true;
 
+        // This may be a bad idea. This isn't firing, it isn't correct JEM
+        //$(this.quarkWrap).on( "DOMMouseScroll", function( event ) {
+          //event.preventDefault();
+        //  event.stopPropagation();
+        //  inControl.consoleLog('gulp DOMMouseScroll');
+        //});
+
+        // This changes nothing at all so far... Wasted effort
+        //$(document).on( "mousewheel", function( event ) {
+          //event.preventDefault();
+        //  event.stopPropagation();
+        //  inControl.consoleLog('gulp mousewheel');
+        //});
+
+
         this.mediaView(this.mediaViewEnabled);
 
         this.refreshContol(false);
@@ -581,26 +603,34 @@ class Hadron {
 
           if (userRequested == true || this.botResetOnLoad == true) {
             responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
-              inControl.textAreaEnabled(true);
+              setTimeout(() => {
+                inControl.textAreaEnabled(true); //JEMHERE
+              }, inControl.firstVolleyPause);
             });
          } else {
            responseText = this.callMTOne(this.botsFirstMessage, function(botSaid, cards) {
-             inControl.textAreaEnabled(true);
+             setTimeout(() => {
+               inControl.textAreaEnabled(true); //JEMHERE
+             }, inControl.firstVolleyPause);
            });
          }
-        }, 20);
+       }, 1);
       } else {
         setTimeout(() => {
           if (userRequested == true || this.botResetOnLoad == true) {
             var responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
-              inControl.talk(false);
-              inControl.textAreaEnabled(true);
+              //inControl.talk(false);
+              setTimeout(() => {
+                inControl.textAreaEnabled(true); //JEMHERE
+              }, inControl.firstVolleyPause);
             });
           } else {
             inControl.talk(false);
-            inControl.textAreaEnabled(true);
+            setTimeout(() => {
+              inControl.textAreaEnabled(true); //JEMHERE
+            }, inControl.firstVolleyPause);
           }
-        }, 20);
+        }, 100);
       }
     }
 
@@ -635,7 +665,7 @@ class Hadron {
 
     // prepare next save point
     interactionsSave(say, reply) {
-      if (this.localStorageAvailable == false) {
+      if (this.storageAvailable == false) {
         return;
       }
 
@@ -669,7 +699,7 @@ class Hadron {
 
     // commit save to localStorage
     interactionsSaveCommit() {
-      if (!this.localStorageAvailable) {
+      if (this.storageAvailable == false) {
         return;
       }
 
@@ -677,7 +707,7 @@ class Hadron {
         return;
       }
 
-      localStorage.setItem(this.interactionsLS, JSON.stringify(this.interactionsHistory));
+      inControl.hadronStorage.setItem(this.interactionsLS, JSON.stringify(this.interactionsHistory));
 
       this.consoleLog("-----HISTORYSAVECOMMIT-----");
       this.consoleLog(this.interactionsHistory);
@@ -685,10 +715,10 @@ class Hadron {
 
     // read token from local storage
     tokenRead() {
-      if (!this.localStorageAvailable) {
+      if (this.storageAvailable == false) {
         return "";
       } else {
-        var token = localStorage.getItem(this.tokenLS) || "";
+        var token = inControl.hadronStorage.getItem(this.tokenLS) || "";
 
         if (token == "undefined") {
           token = "";
@@ -704,10 +734,10 @@ class Hadron {
 
     // save the token to local storage
     tokenSave(token) {
-      if (!this.localStorageAvailable) {
+      if (this.storageAvailable == false) {
         return;
       } else {
-        localStorage.setItem(this.tokenLS, token);
+        inControl.hadronStorage.setItem(this.tokenLS, token);
       }
     }
 
@@ -716,13 +746,13 @@ class Hadron {
         setTimeout(() => {
           this.inputText.prop('disabled', false);
           this.inputText.removeClass('noinput');
-          this.inputText.val('');
+          //this.inputText.val('');
           this.inputText.focus();
-        }, 500);
+        }, 1);
       } else {
         this.inputText.prop('disabled', true);
         this.inputText.addClass('noinput');
-        this.inputText.val('');
+        //this.inputText.val('');
       }
     }
 
@@ -750,7 +780,7 @@ class Hadron {
             imageClass = 'quark-reco-button-off';
           }
         } else {
-          imageClass = 'quark-reco-button-disabled';
+          imageClass = 'quark-reco-button-disabled quark-button-hidden';
         }
 
         recoIcon = $('<img>', {id: 'quark-reco-icon', class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
@@ -765,6 +795,8 @@ class Hadron {
               inControl.startReco(true);
             }
           }
+
+          inControl.inputText.focus();
         });
 
         recoContainer.append(recoIcon);
@@ -779,7 +811,7 @@ class Hadron {
             imageClass = 'quark-tts-button-off';
           }
         } else {
-          imageClass = 'quark-tts-button-disabled';
+          imageClass = 'quark-tts-button-disabled quark-button-hidden';
         }
 
         ttsIcon = $('<img>', {class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
@@ -789,6 +821,11 @@ class Hadron {
               $(this).removeClass('quark-tts-button-on');
               $(this).addClass('quark-tts-button-off');
 
+              if (inControl.soundObject != false) {
+                inControl.soundObject.pause();
+                inControl.soundObject = false;
+              }
+
               inControl.ttsEnabled = false;
             } else {
               $(this).removeClass('quark-tts-button-off');
@@ -797,9 +834,16 @@ class Hadron {
               inControl.ttsEnabled = true;
             }
           }
+
+          inControl.inputText.focus();
         });
 
         ttsContainer.append(ttsIcon);
+
+        if (this.recoVisible == false) {
+          recoContainer.css('display', 'none');
+        }
+
         inputWrap.append(ttsContainer);
       }
 
@@ -807,6 +851,12 @@ class Hadron {
 
       //JEM refactor
       this.inputText.keypress((e) => {
+        // Discard the CR/done if the bubbles are running.
+        if (this.orderQuarksRunning && e.keyCode == 13) {
+          e.preventDefault();
+          return;
+        }
+
         if (e.keyCode == 13) {
           e.preventDefault();
 
@@ -855,7 +905,7 @@ class Hadron {
             var responseText = this.callMTOne(userSaid, function(botSaid, cards) {
 
             });
-          }, 200);
+          }, 500);
 
           this.inputText.val("");
         }
@@ -872,13 +922,27 @@ class Hadron {
 
   // Is the input a hadron command?
   isCommand(userSaid) {
-    var ci = this.debugCommands.indexOf(userSaid);
+    var param = '';
+    var ci = -1;
+    var length = this.debugCommands.length;
+    while(length--) {
+      if (userSaid.indexOf(this.debugCommands[length]) != -1) {
+        ci = length;
+        var foundCommand = this.debugCommands[length];
+        param = userSaid.replace(foundCommand, '').trim();
+        userSaid = foundCommand;
+        break;
+      }
+    }
+
+    var msg;
+    var convo;
 
     if (ci == -1) {
       return false;
     } else {
-      if (userSaid == '!caps') {
-        var msg = [];
+      if (userSaid == '!!caps') {
+        msg = [];
         msg.push('Device Capabilities');
         msg.push('WebGL: ' + this.boolToString(this.hasWebGL));
         msg.push('WebGL Extensions: ' + this.boolToString(this.hasWebGLExtensions));
@@ -888,15 +952,15 @@ class Hadron {
         msg.push('Low Battery: ' + this.boolToString(this.hasLowBattery));
         msg.push('Low Bandwidth: ' + this.boolToString(this.hasLowBandwidth));
 
-        var convo = { ice: { says: msg, reply: [] } };
+        convo = { ice: { says: msg, reply: [] } };
 
         setTimeout(() => {
           this.talk(convo);
         }, 1000);
 
         return true;
-      } else if (userSaid == "!state") {
-        var msg = [];
+      } else if (userSaid == "!!state") {
+        msg = [];
         msg.push('Hadron State');
         msg.push('TTS Visible: ' + this.boolToString(this.ttsVisible));
         msg.push('TTS Enabled: ' + this.boolToString(this.ttsEnabled));
@@ -904,14 +968,137 @@ class Hadron {
         msg.push('Reco Enabled: ' + this.boolToString(this.recoEnabled));
         msg.push('Reco Continuous: ' + this.boolToString(this.recoContinuous));
 
-        var convo = { ice: { says: msg, reply: [] } };
+        msg.push('Storage: ' + this.hadronStorage.provider);
+        if (this.hadronStorage.provider == "HadronFauxStorage") {
+          msg.push('Your browser is not allowing access to localStorage.  Please contact johnm@botanic.io with information like browser brand, version number, device (mobile, laptop, etc), OS (Windows, Linux)..');
+        }
+
+        msg.push('Is Secure: ' + this.boolToString(this.isSecure));
+        if (this.isSecure == false) {
+          msg.push('Since this site is not using HTTPS, functionality had to be disabled.');
+        }
+
+        convo = { ice: { says: msg, reply: [] } };
 
         setTimeout(() => {
           this.talk(convo);
         }, 1000);
 
         return true;
-      } else if (userSaid == '!who') {
+      } else if (userSaid == '!!config') {
+        msg = [];
+        msg.push('Hadron Config');
+        msg.push('Also known as: ' + Config.also_known_as);
+        msg.push('AYBABTU: '       + Config.all_your_bases_are_belong_to_us);
+        msg.push('MTOne URI: '     + Config.mtone_base_uri);
+        msg.push('Author Tool: '   + Config.author_tool_domain);
+        msg.push('Key: '           + Config.api_key);
+
+        convo = { ice: { says: msg, reply: [] } };
+
+        setTimeout(() => {
+          this.talk(convo);
+        }, 1000);
+
+        return true;
+      } else if (userSaid == "!!3js") {
+        msg = [];
+
+        // Just hide the renderer, don't remove.  So we can return the renderer with a command after a setting changes.
+        this.mediaView(false);
+
+        if (window.inAvatar == false) {
+          msg.push('Cannot inspect, renderer hasn\'t been started.');
+        } else {
+          msg = window.inAvatar.getRenderState();
+        }
+
+        convo = { ice: { says: msg, reply: [] } };
+
+        setTimeout(() => {
+          this.talk(convo);
+        }, 1000);
+
+        return true;
+      } else if (userSaid == "!!actr") {
+        if (this.use3DAvatar == false || this.hasWebGL == false) {
+          msg = [];
+          msg.push('Cannot run');
+          msg.push('Is avatar var defined: ' + this.boolToString(this.use3DAvatar));
+          msg.push('Has WebGL: ' + this.boolToString(this.hasWebGL));
+          convo = { ice: { says: msg, reply: [] } };
+
+          setTimeout(() => {
+            this.talk(convo);
+          }, 1000);
+
+          return true;
+        }
+
+        if (window.inAvatar == false) {
+          window.inAvatar = new HadronAvatar("inAvatar");
+        }
+
+        var avatarDefinition = {};
+
+        avatarDefinition.loaderTargetAnimation = "";
+        avatarDefinition.loaderTargetFormat = "glb";
+
+        avatarDefinition.groundPlanePosition = 0;
+        avatarDefinition.groundPlaneImage = "grass.png";
+        avatarDefinition.showGroundPlane = true;
+
+        avatarDefinition.useCubeMap = true;
+        avatarDefinition.cubeName = 'skybox';
+        avatarDefinition.cubeExtension = 'jpg';
+
+
+        if (param == "0" || param == "") {
+          avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
+          avatarDefinition.showGroundPlane = false;
+          avatarDefinition.useCubeMap = false;
+        } else if (param == "1") {
+          avatarDefinition.loaderTarget = "BoxAnimated.glb";
+        } else if (param == "2") {
+          avatarDefinition.loaderTarget = "CesiumMan.glb";
+        } else if (param == "3") {
+          avatarDefinition.loaderTarget = "Monster.glb";
+        } else if (param == "4") {
+          avatarDefinition.cubeName = "Bridge2";
+          avatarDefinition.loaderTarget = "bsTestRIG_mt.fbx";
+          avatarDefinition.loaderTargetFormat = "fbx";
+          avatarDefinition.loaderTargetAnimation = "body_e7_d13000.fbx";
+          avatarDefinition.showGroundPlane = false;
+        } else if (param == "5") {
+          avatarDefinition.loaderTarget = "DamagedHelmet.glb";
+        } else if (param == "6") {
+          avatarDefinition.loaderTarget = "bsFACE.fbx";
+          avatarDefinition.loaderTargetFormat = "fbx";
+          avatarDefinition.showGroundPlane = false;
+        } else if (param == "7") {
+          avatarDefinition.loaderTarget = "bsFACE.glb";
+          avatarDefinition.showGroundPlane = false;
+        } else if (param == "8") {
+          avatarDefinition.loaderTarget = "ball_rig.fbx";
+          avatarDefinition.showGroundPlane = false;
+          avatarDefinition.loaderTargetFormat = "fbx";
+          avatarDefinition.loaderTargetAnimation = "body_em1-B_d1000.fbx";
+        } else if (param == "9") {
+          avatarDefinition.loaderTarget = "toonTest.glb";
+          avatarDefinition.showGroundPlane = false;
+          avatarDefinition.useCubeMap = false;
+          avatarDefinition.cubeName = 'toon';
+          avatarDefinition.cubeExtension = 'jpg';
+        } else {
+          avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
+        }
+
+        window.inAvatar.startAvatar(avatarDefinition);
+
+        return true;
+      } else if (userSaid == "!stopactr") {
+        window.inAvatar.stopAvatar();
+
         return true;
       }
 
@@ -919,14 +1106,32 @@ class Hadron {
     }
   }
 
+
   // Start the recognizer
   startReco(showToast) {
-    if (inControl.recoEnabled == false) {
-      return;
-    }
+    //JEM Need to ensure this isn't necessary.
+    //if (inControl.recoEnabled == false) {
+    //  return;
+    //}
 
     if (this.recoObject == false) {
       this.recoObject = new Artyom();
+
+      this.recoObject.when("ERROR",function(error){
+        if(error.code == "network"){
+          alert("An error ocurred, artyom cannot work without internet connection !");
+        }
+
+        if(error.code == "audio-capture"){
+          alert("An error ocurred, artyom cannot work without a microphone");
+        }
+
+        if(error.code == "not-allowed"){
+          alert("An error ocurred, it seems the access to your microphone is denied");
+        }
+
+        inControl.consoleLog(error.message);
+      });
 
       if (this.recoObject.recognizingSupported == false) {
         inControl.recoEnabled = false;
@@ -965,26 +1170,33 @@ class Hadron {
       });
 
       var settings = {
-          continuous:true, // Don't stop never because i have https connection
-          onResult:function(interimText, temporalText, isFinal) {
-              // Show the Recognized text in the console
-              //console.log("Recognized text: ", text);
-
-              if (!isFinal) {
-                inControl.inputText.val(interimText);
-              } else {
-                inControl.recoInput(temporalText);
-
-                inControl.stopReco();
-              }
-
-          },
-          onStart:function(){
-              //console.log("Dictation started by the user");
-          },
-          onEnd:function(){
-              //alert("Dictation stopped by the user");
+        continuous:true, // Don't stop never because i have https connection
+        onResult:function(interimText, temporalText) {
+          var isFinal = false;
+          if (temporalText != "") {
+            isFinal = true;
           }
+
+          inControl.consoleLog("interimText: " + interimText);
+          inControl.consoleLog("temporalText:" + temporalText);
+          inControl.consoleLog("isFinal:" + isFinal);
+
+          if (!isFinal) {
+            inControl.inputText.val(interimText);
+          } else {
+            if (this.recoObject != false) {
+              inControl.recoInput(temporalText);
+            }
+
+            inControl.stopReco();
+          }
+        },
+        onStart:function(){
+            //console.log("Dictation started by the user");
+        },
+        onEnd:function(){
+            //alert("Dictation stopped by the user");
+        }
       };
 
       this.userDictation = this.recoObject.newDictation(settings);
@@ -1054,6 +1266,7 @@ class Hadron {
 
   // Is it a stop command?
   isStopListeningCommand(phrase) {
+    this.consoleLog('isStop:' + phrase);
     var areEqual = this.caseInsensitiveCompare(phrase, this.stopCommand);
 
     if (areEqual) {
@@ -1069,6 +1282,8 @@ class Hadron {
 
   // Receives the spoken text, sends to chat input.
   recoInput(phrase) {
+    this.consoleLog("recoInput: " + phrase);
+
     if (this.isStopListeningCommand(phrase)) {
       return;
     }
@@ -1085,6 +1300,10 @@ class Hadron {
   // accept JSON & create quark
   talk(convo, here = "ice") {
     if (convo == false) {
+      if (this.botWelcomeText == false || this.botWelcomeText == "") {
+        return;
+      }
+
       if (this.hideInput == true) {
         convo = { ice: { says: [this.botWelcomeText], reply: [{ question: "Hi!", answer: "hi", type: "echo"}] } };
       } else {
@@ -1130,10 +1349,30 @@ class Hadron {
       questionsHTML = "<div class='quark-button-wrap'>" + questionsHTML + '</div>';
     }
 
+    this.orderQuarkState(true);
+
     this.orderQuarks(turn.says, () => {
+      this.orderQuarkState(false);
+
       this.quarkTyping.removeClass("imagine");
-      questionsHTML !== "" ? this.addQuark(questionsHTML, function() {}, "says-buttons") : this.quarkTyping.addClass("imagine");
+
+      if (questionsHTML !== "") {
+        this.addQuark(questionsHTML, function() {}, "says-buttons");
+      } else {
+        this.quarkTyping.addClass("imagine");
+      }
     });
+  }
+
+  // Sets the state and can message to control behavior
+  orderQuarkState(state) {
+    this.orderQuarksRunning = state;
+
+    if (state == true) {
+      //this.textAreaEnabled(false);
+    } else {
+      //this.textAreaEnabled(true);
+    }
   }
 
   // This receives the info from MTOne both text and card array
@@ -1220,8 +1459,40 @@ class Hadron {
     }
   }
 
-  // Look for a trigger phrase.
+  replaceAll(string, search, replacement) {
+    return string.replace(new RegExp(search, 'g'), replacement);
+  }
+
+  // Look for a trigger phrase OR fix errors in certain types of data.....
   parseBotResponse(botSaid) {
+    if (botSaid.includes("' blank'")) {
+      botSaid = this.replaceAll(botSaid, "' blank'", "'_blank'");
+    }
+
+    if (botSaid.includes('" blank"')) {
+      botSaid = this.replaceAll(botSaid, '" blank"', '"_blank"');
+    }
+
+    if (botSaid.includes("' top'")) {
+      botSaid = this.replaceAll(botSaid, "' top'", "'_top'");
+    }
+
+    if (botSaid.includes('" top"')) {
+      botSaid = this.replaceAll(botSaid, '" top"', '"_top"');
+    }
+
+    if (botSaid.includes("' self'")) {
+      botSaid = this.replaceAll(botSaid, "' self'", "'_top'");
+    }
+
+    if (botSaid.includes('" self"')) {
+      botSaid = this.replaceAll(botSaid, '" self"', '"_top"');
+    }
+
+    if (botSaid.includes('https://twitter.com/SEED token')) {
+      botSaid = this.replaceAll(botSaid, 'https://twitter.com/SEED token', 'https://twitter.com/SEED_token');
+    }
+
     if (botSaid.includes("HADRONSTARTVOICERECO")) {
       botSaid = botSaid.replace("HADRONSTARTVOICERECO", "");
       inControl.recoEnabled = true;
@@ -1247,33 +1518,33 @@ class Hadron {
 
   // Create an embed/media/etc based on some input.
   convertMedia(html) {
-      var cls = 'class="responsive-video"';
-      var frm = '<div class="responsive-container"><iframe '+cls+' src="//_URL_" frameborder="0" allowfullscreen id="mediaplayer"></iframe></div>';
-      var converts = [
-        {
-          rx: /^(?:https?:)?\/\/(?:www\.)?vimeo\.com\/([^\?&"]+).*$/g,
-          tmpl: frm.replace('_URL_',"player.vimeo.com/video/$1")
-        },
-        {
-          rx: /^.*(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|user\/.+\/)?([^\?&"]+).*$/g,
-          tmpl: frm.replace('_URL_',"www.youtube.com/embed/$1")
-        },
-        {
-          rx: /^.*(?:https?:\/\/)?(?:www\.)?(?:youtube-nocookie\.com)\/(?:watch\?v=|embed\/|v\/|user\/.+\/)?([^\?&"]+).*$/g,
-          tmpl: frm.replace('_URL_',"www.youtube-nocookie.com/embed/$1")
-        },
-        {
-          rx: /(^[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?\.(?:jpe?g|gif|png|svg)\b.*$)/gi,
-          tmpl: '<a '+cls+' href="$1" target="_blank"><img src="$1" /></a>'
-        },
-      ];
-      for (var i in converts)
-        if (converts[i].rx.test(html.trim())) {
+    var cls = 'class="responsive-video"';
+    var frm = '<div class="responsive-container"><iframe '+cls+' src="//_URL_" frameborder="0" allowfullscreen id="mediaplayer"></iframe></div>';
+    var converts = [
+      {
+        rx: /^(?:https?:)?\/\/(?:www\.)?vimeo\.com\/([^\?&"]+).*$/g,
+        tmpl: frm.replace('_URL_',"player.vimeo.com/video/$1")
+      },
+      {
+        rx: /^.*(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|user\/.+\/)?([^\?&"]+).*$/g,
+        tmpl: frm.replace('_URL_',"www.youtube.com/embed/$1")
+      },
+      {
+        rx: /^.*(?:https?:\/\/)?(?:www\.)?(?:youtube-nocookie\.com)\/(?:watch\?v=|embed\/|v\/|user\/.+\/)?([^\?&"]+).*$/g,
+        tmpl: frm.replace('_URL_',"www.youtube-nocookie.com/embed/$1")
+      },
+      {
+        rx: /(^[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?\.(?:jpe?g|gif|png|svg)\b.*$)/gi,
+        tmpl: '<a '+cls+' href="$1" target="_blank"><img src="$1" /></a>'
+      },
+    ];
+    for (var i in converts)
+      if (converts[i].rx.test(html.trim())) {
 
-          return html.trim().replace(converts[i].rx, converts[i].tmpl);
-        }
+        return html.trim().replace(converts[i].rx, converts[i].tmpl);
+      }
 
-      return false;
+    return false;
   }
 
 
@@ -1478,9 +1749,9 @@ class Hadron {
         dataType: 'JSON',
         context: this,
         success: function(result){
-          var json_obj = JSON.parse(result);
+          var sound_uri = result.response.data[0].audio_uri || false;
 
-          var sound_uri = json_obj.response.data[0].audio_uri || false;
+          this.consoleLog(result.response.data);
 
           if (sound_uri != false) {
             this.stopReco();
@@ -1552,6 +1823,7 @@ class Hadron {
             // If we are in mediaView we do NOT use TTS. Eventually should be only if the media is video but for now.
             if (this.useLocalTTS == false) {
               this.ttsURIToCall = json_obj.tts || false;
+              this.consoleLog(this.ttsURIToCall);
             } else {
               this.localTTS(json_obj.bot_said || "");
             }
@@ -1588,7 +1860,7 @@ class Hadron {
     // Create the overlay components and assign them so other functions can interact with it.
     if (state == true) {
       if ($('.quark-media-content').length != 0) {
-        return;
+        return this.mediaOverlayContent;
       }
 
       // Disable TTS, it would be bad over a video preso.
@@ -1602,6 +1874,8 @@ class Hadron {
       this.mediaOverlay.append(this.mediaOverlayContent);
 
       this.container.append(this.mediaOverlay);
+
+      return this.mediaOverlayContent;
     } else {
       if ($('.quark-media-content').length != 0) {
         $('.quark-media-content').remove();
@@ -1613,6 +1887,8 @@ class Hadron {
         this.container = this.mediaViewPreservedState;
       }
     }
+
+    return false;
   }
 
   // Show response when mediaView is true.
@@ -1784,75 +2060,79 @@ class Hadron {
        setTimeout(() => { this.quarkTyping.addClass("imagine"); }, wait - animationTime * 2);
      }
 
-    this.quarkQueue = setTimeout(() => {
-      this.quark.removeClass("imagine");
 
-      var quarkWidthCalc = (this.quarkContent[0].offsetWidth * 1) + this.widerBy;
+     this.quarkQueue = setTimeout(() => {
+       this.quark.removeClass("imagine");
 
-      if (quarkWidthCalc <= this.widerBy) {
-        quarkWidthCalc = 360 * 0.4;
-      }
+       var quarkWidthCalc = parseInt(this.quarkContent[0].offsetWidth * 1, 10) + this.widerBy;
 
-      var maxQuarkWidth = this.quarkWrap.width() - 35;
-      //this.consoleLog("qWrap: " + maxQuarkWidth);
+       if (quarkWidthCalc <= this.widerBy) {
+         quarkWidthCalc = 360 * 0.4;
+       }
 
-      if (quarkWidthCalc > maxQuarkWidth) {
-        quarkWidthCalc = maxQuarkWidth;
-      }
+       var maxQuarkWidth = parseInt(this.quarkWrap.width(), 10) - 35;
+       if (maxQuarkWidth <= this.widerBy) {
+         maxQuarkWidth = 360 * 0.4;
+       }
 
-      quarkWidthCalc = quarkWidthCalc + "px";
-      //this.consoleLog("qw:" + quarkWidthCalc);
+       //console.log("quarkWidthCalc: " + quarkWidthCalc);
+       //console.log("maxQuarkWidth: " + maxQuarkWidth);
 
-      var isResponsive = false;
-      var isResponsiveImage = this.quark.find('.responsive-img');
-      var isResponsiveVideo = this.quark.find('.responsive-video');
-      var isResponsiveAudio = this.quark.find('.responsive-audio');
-      var isResponsiveCard  = this.quark.find('.responsive-card');
+       quarkWidthCalc = Math.min(quarkWidthCalc, maxQuarkWidth);
 
-      if (isResponsiveImage.length > 0 || isResponsiveVideo.length > 0 || isResponsiveAudio.length > 0 || isResponsiveCard.length > 0) {
-        isResponsive = true;
-      }
+       quarkWidthCalc = quarkWidthCalc + "px";
 
-      if (isResponsiveVideo) {
+       var isResponsive = false;
+       var isResponsiveImage = this.quark.find('.responsive-img');
+       var isResponsiveVideo = this.quark.find('.responsive-video');
+       var isResponsiveAudio = this.quark.find('.responsive-audio');
+       var isResponsiveCard  = this.quark.find('.responsive-card');
 
-      }
+       if (isResponsiveImage.length > 0 || isResponsiveVideo.length > 0 || isResponsiveAudio.length > 0 || isResponsiveCard.length > 0) {
+         isResponsive = true;
+       }
 
-      if (isResponsive == false) {
-        this.quark.css("width", reply == "" ? quarkWidthCalc : "");
-      }
+       if (isResponsiveVideo) {
 
-      this.quark.addClass("say");
-      posted();
+       }
 
-      // save the interaction
-      if (!this.iceBreaker) {
-        this.interactionsSave(say, reply);
-        this.interactionsSaveCommit();
-      }
+       if (isResponsive == false) {
+         this.quark.css("width", reply == "" ? quarkWidthCalc : "");
+       }
 
-      // animate scrolling
-      var containerHeight = this.container[0].offsetHeight;
-      var scrollDifference = this.quarkWrap[0].scrollHeight - this.quarkWrap[0].scrollTop;
-      var scrollHop = (scrollDifference) / 200;
+       this.quark.addClass("say");
+       this.quark.fadeTo(0.5, 0).fadeTo(2, 1);
+       posted();
 
-      if (scrollHop > 3) {
-        scrollHop = scrollHop * 3;
-      }
+       // save the interaction
+       if (!this.iceBreaker) {
+         this.interactionsSave(say, reply);
+         this.interactionsSaveCommit();
+       }
 
-      var scrollQuarks = () => {
-        for (var i = 1; i <= scrollDifference / scrollHop; i++) {
-          ;(function() {
-            setTimeout(() => {
-              if ((inControl.quarkWrap[0].scrollHeight - inControl.quarkWrap[0].scrollTop) > containerHeight) {
-                var sTop = inControl.quarkWrap[0].scrollTop + scrollHop;
-                inControl.quarkWrap[0].scrollTop = sTop;
-              }
-            }, i * 5);
-          })();
-        }
-      };
-      setTimeout(scrollQuarks, animationTime / 2);
-    }, wait + animationTime * 2);
+       // animate scrolling
+       var containerHeight = this.container[0].offsetHeight;
+       var scrollDifference = this.quarkWrap[0].scrollHeight - this.quarkWrap[0].scrollTop;
+       var scrollHop = (scrollDifference) / 200;
+
+       if (scrollHop > 3) {
+         scrollHop = scrollHop * 3;
+       }
+
+       var scrollQuarks = () => {
+         for (var i = 1; i <= scrollDifference / scrollHop; i++) {
+           ;(function() {
+             setTimeout(() => {
+               if ((inControl.quarkWrap[0].scrollHeight - inControl.quarkWrap[0].scrollTop) > containerHeight) {
+                 var sTop = inControl.quarkWrap[0].scrollTop + scrollHop;
+                 inControl.quarkWrap[0].scrollTop = sTop;
+               }
+             }, i * 5);
+           })();
+         }
+       };
+       setTimeout(scrollQuarks, animationTime / 2);
+     }, wait + animationTime * 2);
   }
 
   // Try to correct scroll position.
@@ -1869,20 +2149,15 @@ class Hadron {
 }
 
 var inControl;
+window.inControl = inControl = new Hadron("inControl", ".hadron-button");
+inControl.runControl();
 
-function allJSClassesLoaded() {
-  window.inControl = inControl = new Hadron("inControl", ".hadron-button");
-  inControl.runControl();
-
-  window.onload = function() {
-    function receiveMessage(e) {
-      if (e.data == "refreshHadron") {
-        inControl.refreshContol();
-      }
+window.onload = function() {
+  function receiveMessage(e) {
+    if (e.data == "refreshHadron") {
+      inControl.refreshContol();
     }
+  }
 
-    window.addEventListener('message', receiveMessage);
-  };
-}
-
-allJSClassesLoaded();
+  window.addEventListener('message', receiveMessage);
+};

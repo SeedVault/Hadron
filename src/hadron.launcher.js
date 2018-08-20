@@ -5,8 +5,18 @@
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
-import Config from './config.sequoia.js';
-//import Config from './config.beta.js';
+
+const Config = {
+  also_known_as                  : `${Configalso_known_as}`,
+  all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
+  mtone_base_uri                 : `${Configmtone_base_uri}`,
+  author_tool_domain             : `${Configauthor_tool_domain}`,
+  api_key                        : `${Configapi_key}`
+};
+
+
+// Load the storage facade
+import {HadronStorage} from './hadron.storage.js';
 
 import './css/launcher.css';
 
@@ -29,17 +39,26 @@ class HadronLauncher {
     this.fullyLoaded = false;
     this.iframeCreated = false;
     this.isSecure = false;
+    this.hadronStorage       = new HadronStorage("hadronStorage");
 
+    this.botAutoPages        = this.getControlData("bot-auto-open-pages", "");
     this.sizeClass           = this.getControlData("bot-size-class",   "standard");
     this.toggleClass         = this.getControlData("bot-toggle-class", "botanic-green");
     this.toggleIcon          = this.getControlData("bot-toggle-icon",  "chat_bubble_outline");
     this.needsMetaTag        = this.getControlData("bot-add-metatag",  true, "bool");
     this.launcherExternalCSS = this.getControlData("bot-launcher-external-css", "");
     this.togglePulses        = this.getControlData("bot-toggle-pulses", true, "bool");
+    this.botAutoOpens        = this.getControlData("bot-auto-opens", false, "bool");
+    this.botRemembersState   = this.getControlData("bot-remembers-state", true, "bool");
+
+    //console.log("this.botAutoPages: " + this.botAutoPages);
+    //console.log("this:");
+    //console.log(this);
 
     this.getStylesheet();
     this.checkForHTTPS();
     this.addMetaTag();
+
     this.showChatToggle();
   }
 
@@ -69,6 +88,8 @@ class HadronLauncher {
   // Reads data elements from a control, applies a format and tests.
   getControlData(field, defaultValue = false, dataType = "string") {
     var foundData = this.hadronButton.data(field);
+
+    //console.log("gcd: " + field + " " + foundData);
 
     if (this.isUndefined(foundData)) {
       foundData = defaultValue;
@@ -123,8 +144,10 @@ class HadronLauncher {
       jQuery("#hadron-toggle-1").click((el) => {
         if (this.fullyLoaded == false) {
           this.regLookUp(() => {
-            jQuery("#hadron-toggle-1").hide();
-            this.initializeChatWindow();
+            if (this.botRemembersState) {
+              this.setOpenState(true);
+            }
+            this.openChatWindow();
           });
         } else {
           jQuery("#hadron-toggle-1").hide();
@@ -136,10 +159,83 @@ class HadronLauncher {
       });
     }
 
-    if (this.startFullscreen) {
-      jQuery("#hadron-toggle-1").hide();
-      this.initializeChatWindow();
+    var autoState = false;
+    if (this.botRemembersState) {
+      autoState = this.getOpenState();
     }
+
+    var autoOpenPageFound = this.checkAutoOpenPages();
+
+    //console.log('fs:' + this.startFullscreen);
+    //console.log('au:' + this.botAutoOpens);
+    //console.log('as:' + autoState);
+    //console.log('apf:' + autoOpenPageFound);
+
+
+    if (this.startFullscreen == true || this.botAutoOpens == true || autoState == true || autoOpenPageFound == true) {
+      this.openChatWindow();
+    }
+  }
+
+  checkAutoOpenPages() {
+    //console.log("ap:" + this.botAutoPages);
+
+    if (this.botAutoPages == "") {
+      return false;
+    }
+
+    var found = false;
+    var pageList = this.botAutoPages.split(',');
+    var currentPage = location.pathname;
+
+    //console.log("pl: " + pageList);
+    //console.log("currentPage: " + currentPage);
+
+    for (var i = 0; i < pageList.length; i++) {
+      var thisPage = pageList[i];
+
+      //console.log("thisPage: " + thisPage);
+
+      if (currentPage.includes(thisPage)) {
+        //console.log("FOUND!");
+        found = true;
+        break;
+      }
+    }
+
+    return found;
+  }
+
+  // Opens the window. Can be because of click, open in fullscreen or auto open.
+  openChatWindow() {
+    jQuery("#hadron-toggle-1").hide();
+    this.initializeChatWindow();
+  }
+
+  // Last known state
+  getOpenState() {
+    var result = this.hadronStorage.getItem('hadronOpenState');
+    if (this.isUndefined(result) == true) {
+      result = false;
+    }
+
+    result = this.checkBoolean(result);
+
+    //console.log(result + ' <= getOpenState()');
+
+    return result;
+  }
+
+  // Sets the state
+  setOpenState(value) {
+    this.hadronStorage.setItem('hadronOpenState', value);
+
+    //console.log('setOpenState(' + value + ')');
+  }
+
+  // Sets the state to false
+  clearOpenState() {
+    this.setOpenState(false);
   }
 
   // Open the iframe, do the magical stuff and pass data in.
@@ -161,7 +257,8 @@ class HadronLauncher {
        class: 'quark_chat_' + this.sizeClass,
        frameborder: 0,
        scrolling: 'no',
-       allow: "microphone; camera"
+       allowusermedia: true,
+       allow: "microphone *; camera *; geolocation *"
      }).appendTo('body');
 
      this.iframeCreated = true;
@@ -210,6 +307,10 @@ if (window.jQuery) {
 window.onload = function() {
   function receiveMessage(e) {
     if (e.data == "MinimizeIframe") {
+      if (inToggle.botRemembersState) {
+        inToggle.setOpenState(false);
+      }
+
       jQuery("#hadron-iframe").hide();
       jQuery("#hadron-toggle-1").show();
     }

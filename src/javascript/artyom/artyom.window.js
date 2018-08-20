@@ -621,7 +621,7 @@ var Artyom = (function () {
                     _this.debug("Continuous mode enabled, restarting", "info");
                 }
                 else {
-                    console.error("Verify the microphone and check for the table of errors in sdkcarlos.github.io/sites/artyom.html to solve your problem. If you want to give your user a message when an error appears add an artyom listener");
+                    console.log("Verify the microphone and check for the table of errors in sdkcarlos.github.io/sites/artyom.html to solve your problem. If you want to give your user a message when an error appears add an artyom listener");
                 }
                 _this.triggerEvent(_this.ArtyomGlobalEvents.COMMAND_RECOGNITION_END, {
                     code: "continuous_mode_enabled",

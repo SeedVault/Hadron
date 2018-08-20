@@ -71,7 +71,7 @@ a.botanic-button {
 
 .quark-content-overlay-container .input-wrap textarea {
 	margin: 15px 0 0 0;
-  padding: 0px 0 0 0px;
+  padding: 0px 0 0 14px;
 	width: calc(100% - 80px);
   height: 28px;
 	resize: none;
@@ -391,6 +391,10 @@ a.botanic-button {
   outline: none;
 }
 
+.quark-button-hidden {
+  display: none;
+}
+
 .quark-reco-button-on {
   background-image: url(./images/mic-on-50.png);
   background-size: cover;
@@ -422,17 +426,19 @@ a.botanic-button {
 
 
 .quark-media-overlay {
-    width: calc(100vw);
-    height: calc(100vh - 134px);
+    width: calc(100vw - 10px);
+    height: calc(100vh - 124px);
     background-color: #808080;
     position: relative;
     z-index: 100;
 }
 
 .quark-media-content {
-  width: calc(100vw);
-  height: calc(100% - 35px);
+  width: calc(100vw - 10px);
+  height: calc(100% - 0px);
   background-color: transparent;
+  margin: 0 0 0 0;
+  padding: 0 0 0 0;
   position: relative;
 }
 
@@ -465,7 +471,7 @@ a.botanic-button {
 }
 
 .noinput {
-  /* background-color: silver; */
+  background-color: transparent;
   color: gray !important;
 }
 
