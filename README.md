@@ -1,11 +1,22 @@
 ## Botanic/SEED Hadron
-
 Standalone Web Chat Client for use with Botanic/SEED Token Network services.  
 
 ### Disclaimer
 These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
 Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 
+### What is Hadron
+Hadron is a presentation wrapper for deploying bots in a container that can be included in a variety of website frameworks. It includes voice recognition, text to speech and 3D avatar capabilities.
+
+### Live Demo of Hadron (SEED Bot)
+Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io) and on Telegram (search for @seedtokenbot)
+
+### Introduction
+Part of the SEED token project. This is a sneak preview - there is more to come.
+See [the Wiki](https://github.com/SeedVault/SEEDtoken-IP/wiki) for more information.
+
+### About the SEED Token Project
+SEED democratizes AI by offering an open and independent alternative to the monopolies of a few large corporations that currently control conversational user interfaces (CUIs) and AI technologies. SEED's licensed, monetized open-source platform for bots on blockchain supports collaboration and creative compensation that will exceed the proprietary deployments from industry giants. We are also giving users back control of their personal data. Find out more about the SEED Token project at [seedtoken.io](https://seedtoken.io). See the Connect section at the end for contact info.
 
 ### Features
 
