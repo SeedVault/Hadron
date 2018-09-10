@@ -9,7 +9,7 @@ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 Hadron is a presentation wrapper for deploying bots in a container that can be included in a variety of website frameworks. It includes voice recognition, text to speech and 3D avatar capabilities.
 
 ### Live Demo of Hadron (SEED Bot)
-Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io) and on Telegram (search for @seedtokenbot)
+Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io)
 
 ### Introduction
 Part of the SEED token project. This is a sneak preview - there is more to come.
@@ -18,7 +18,10 @@ See [the Wiki](https://github.com/SeedVault/SEEDtoken-IP/wiki) for more informat
 ### About the SEED Token Project
 SEED democratizes AI by offering an open and independent alternative to the monopolies of a few large corporations that currently control conversational user interfaces (CUIs) and AI technologies. SEED's licensed, monetized open-source platform for bots on blockchain supports collaboration and creative compensation that will exceed the proprietary deployments from industry giants. We are also giving users back control of their personal data. Find out more about the SEED Token project at [seedtoken.io](https://seedtoken.io). See the Connect section at the end for contact info.
 
-### Features
+### How to contribute - how to get involved
+Go to our **[Developers Garden](https://developers.seedtoken.io)** to see all featured projects, pick one and fill out the **[Developer Interest Form](https://developers.seedtoken.io/#Developer-Interest-Form)**. If you rather like to discuss ideas before rolling up your sleeves, please come visit our **[Discord channels for developers](https://discord.gg/Suv5bFT)**
+
+## Features
 
 - [x] Basic text
 - [x] Inline HTML formatting
