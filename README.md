@@ -15,12 +15,18 @@ Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://see
 ### Test Hadron on Codepen
 https://codepen.io/BotanicTechnologies/pen/WarGxm
 
+### Live Demo of Hadron (SEED Bot)
+Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io)
+
 ### Introduction
 Part of the SEED token project. This is a sneak preview - there is more to come.
 See [the Wiki](https://github.com/SeedVault/SEEDtoken-IP/wiki) for more information.
 
 ### About the SEED Token Project
 SEED democratizes AI by offering an open and independent alternative to the monopolies of a few large corporations that currently control conversational user interfaces (CUIs) and AI technologies. SEED's licensed, monetized open-source platform for bots on blockchain supports collaboration and creative compensation that will exceed the proprietary deployments from industry giants. We are also giving users back control of their personal data. Find out more about the SEED Token project at [seedtoken.io](https://seedtoken.io). See the Connect section at the end for contact info.
+
+### How to contribute - how to get involved
+Go to our **[Developers Garden](https://developers.seedtoken.io)** to see all featured projects, pick one and fill out the **[Developer Interest Form](https://developers.seedtoken.io/#Developer-Interest-Form)**. If you rather like to discuss ideas before rolling up your sleeves, please come visit our **[Discord channels for developers](https://discord.gg/Suv5bFT)**
 
 ### Features
 
