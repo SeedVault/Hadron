@@ -16,13 +16,10 @@ const Config = {
 
 
 //onended seems to not work as expected
-// Show progress bar if possible during load of threejs
 
 // If you minimize as the bubble is being built, the text width is messed up and looks awful, very narrow.
 
-//DOMMouseScroll preventDefault on the hadron iframe if possible.  Only let hadron scroll when mouse wheel is used OVER hadron
 //Better way to process video OR disable.  Better = only do the exchange of the link and/or a href entirely but NOT the whole string.
-//localStorage
 
 import './css/input.css';
 import './css/reply.css';
@@ -31,6 +28,7 @@ import './css/setup.css';
 import './css/sprites.css';
 import './css/typing.css';
 
+import './css/toast/jquery.toast.css';
 
 window.inAvatar = false;
 
@@ -54,6 +52,7 @@ import {HadronStorage} from './hadron.storage.js';
 // Load Avatar support
 import {HadronAvatar} from './hadron.avatar.js';
 import {HadronActr} from './hadron.actr.js';
+
 
 // The core class of Hadron
 class Hadron {
@@ -79,6 +78,7 @@ class Hadron {
       this.botHasSpoken = false;  // This is set to true if the bot is meant to talk first and HAS responded.
       this.token = false;
       this.soundObject = false;
+      this.audioUnlocked = false;
       this.replyCount = 0;
       this.relative_path = Config.all_your_bases_are_belong_to_us;
       this.iceBreaker = false;  // this variable holds answer to whether this is the initative bot interaction or not
@@ -138,6 +138,7 @@ class Hadron {
       this.botTalksFirst      = this.getControlData("bot-talks-first", false, "bool");
 
       this.botResetOnLoad     = this.getControlData("bot-reset-on-load", false, "bool");
+      this.botResetClearsToken= this.getControlData("bot-reset-clears-token", true, "bool");
 
       this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
       this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");
@@ -146,8 +147,10 @@ class Hadron {
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
       this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", false, "bool");
 
-      this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.use3DAvatar        = this.getControlData("bot-uses-3d-avatar", false, "bool");
+      this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
+
+      this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.botId              = this.getControlData("bot-id", Config.api_key);
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
@@ -184,7 +187,8 @@ class Hadron {
 
       this.storageAvailable   = true;
       this.interactionsLS     = "chat-quark-interactions";
-      this.tokenLS            = "chat-quark-token-" + this.rootFlowUUID + "-" + this.botId + "-" + Config.also_known_as;
+      this.flowOrNative       = (this.rootFlowUUID != "") ? this.rootFlowUUID : 'native';
+      this.tokenLS            = "chat-quark-token-" + this.flowOrNative + "-" + this.botId + "-" + Config.also_known_as;
 
       if (this.recallInteractions != 0) {
         this.consoleLog('recallInteractions: ' + this.recallInteractions);
@@ -406,6 +410,7 @@ class Hadron {
 
       this.appendIcon("Material+Icons");
       this.appendFont("Lato:400,700");
+      this.appendFont("Indie+Flower");
 
       if (this.externalFont != "") {
         this.appendFont(this.externalFont);
@@ -586,7 +591,6 @@ class Hadron {
             if (result.response.information.code  <= 202) {
               callback();
             } else {
-              inControl.token = "";
               inControl.tokenSave("");
               callback();
             }
@@ -602,6 +606,10 @@ class Hadron {
           var responseText;
 
           if (userRequested == true || this.botResetOnLoad == true) {
+            if (this.botResetClearsToken) {
+              inControl.clearToken();
+            }
+
             responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
               setTimeout(() => {
                 inControl.textAreaEnabled(true); //JEMHERE
@@ -618,6 +626,10 @@ class Hadron {
       } else {
         setTimeout(() => {
           if (userRequested == true || this.botResetOnLoad == true) {
+            if (this.botResetClearsToken) {
+              inControl.clearToken();
+            }
+
             var responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
               //inControl.talk(false);
               setTimeout(() => {
@@ -720,6 +732,8 @@ class Hadron {
       } else {
         var token = inControl.hadronStorage.getItem(this.tokenLS) || "";
 
+        console.log("tokenRead: " + token);
+
         if (token == "undefined") {
           token = "";
         }
@@ -734,6 +748,10 @@ class Hadron {
 
     // save the token to local storage
     tokenSave(token) {
+      console.log("tokenSave: " + token);
+
+      inControl.token = token;
+
       if (this.storageAvailable == false) {
         return;
       } else {
@@ -741,6 +759,17 @@ class Hadron {
       }
     }
 
+
+    // Empty out the token, need to make sure the empty value matches what we expect.  Empty quotes should be OK.
+    clearToken() {
+      console.log('clearToken:');
+      console.log('original token:' + this.token);
+      this.tokenChecked = false;
+      this.tokenSave("");
+    }
+
+
+    // Sets the state of the text input.  This prevents user entry if Hadron is not ready.
     textAreaEnabled(state) {
       if (state == true) {
         setTimeout(() => {
@@ -758,7 +787,6 @@ class Hadron {
 
     // Creates and handles user input.
     typeInput() {
-      var ttsIcon;
       var recoIcon;
       var imageClass;
 
@@ -772,7 +800,7 @@ class Hadron {
           if (this.recoEnabled) {
             imageClass = 'quark-reco-button-on';
 
-            //M.toast({html: 'I\'m listening.', classes: 'rounded'});
+            inControl.showToast('I\'m listening.');
 
             // Start reco.
             this.startReco(true);
@@ -814,31 +842,27 @@ class Hadron {
           imageClass = 'quark-tts-button-disabled quark-button-hidden';
         }
 
-        ttsIcon = $('<img>', {class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
-        ttsIcon.click(function() {
+        this.ttsIcon = $('<img>', {class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
+
+        this.ttsIcon.click(() => {
+          if (inControl.soundObject) {
+            inControl.soundObject.muted = false;
+          } else {
+            inControl.playAudio(Config.all_your_bases_are_belong_to_us + '500-milliseconds-of-silence.mp3');
+          }
+
+          inControl.context.resume().then(() => {
+            console.log('Playback resumed successfully');
+          });
+
           if (inControl.ttsVisible) {
-            if ($(this).hasClass('quark-tts-button-on')) {
-              $(this).removeClass('quark-tts-button-on');
-              $(this).addClass('quark-tts-button-off');
-
-              if (inControl.soundObject != false) {
-                inControl.soundObject.pause();
-                inControl.soundObject = false;
-              }
-
-              inControl.ttsEnabled = false;
-            } else {
-              $(this).removeClass('quark-tts-button-off');
-              $(this).addClass('quark-tts-button-on');
-
-              inControl.ttsEnabled = true;
-            }
+            inControl.changeTTSState(!this.ttsEnabled);
           }
 
           inControl.inputText.focus();
         });
 
-        ttsContainer.append(ttsIcon);
+        ttsContainer.append(this.ttsIcon);
 
         if (this.recoVisible == false) {
           recoContainer.css('display', 'none');
@@ -899,13 +923,15 @@ class Hadron {
             return;
           }
 
+          this.avatarState('acknowledge');
+
           // call MTOne after a slight delay.  MTOne can answer so quickly that it breaks behavior.
           // var userSaid = this.inputText.val();
           setTimeout(() => {
             var responseText = this.callMTOne(userSaid, function(botSaid, cards) {
 
             });
-          }, 500);
+          }, 50);
 
           this.inputText.val("");
         }
@@ -919,6 +945,34 @@ class Hadron {
 
       this.inputText.focus();
   }
+
+  avatarState(state) {
+    if (window.inAvatar) {
+      window.inAvatar.avatarState(state);
+    }
+  }
+
+
+  changeTTSState(state) {
+    inControl.inputText.focus();
+
+    if (inControl.ttsVisible) {
+      inControl.ttsEnabled = state;
+
+      if (state == false) {
+        inControl.ttsIcon.addClass('quark-tts-button-off');
+        inControl.ttsIcon.removeClass('quark-tts-button-on');
+
+        inControl.pauseAudio();
+      } else {
+        inControl.ttsIcon.addClass('quark-tts-button-on');
+        inControl.ttsIcon.removeClass('quark-tts-button-off');
+      }
+
+      inControl.ttsIcon.hide().show(0);
+    }
+  }
+
 
   // Is the input a hadron command?
   isCommand(userSaid) {
@@ -1039,64 +1093,9 @@ class Hadron {
           window.inAvatar = new HadronAvatar("inAvatar");
         }
 
-        var avatarDefinition = {};
+        return window.inAvatar.checkACTRInput(param);
 
-        avatarDefinition.loaderTargetAnimation = "";
-        avatarDefinition.loaderTargetFormat = "glb";
-
-        avatarDefinition.groundPlanePosition = 0;
-        avatarDefinition.groundPlaneImage = "grass.png";
-        avatarDefinition.showGroundPlane = true;
-
-        avatarDefinition.useCubeMap = true;
-        avatarDefinition.cubeName = 'skybox';
-        avatarDefinition.cubeExtension = 'jpg';
-
-
-        if (param == "0" || param == "") {
-          avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
-          avatarDefinition.showGroundPlane = false;
-          avatarDefinition.useCubeMap = false;
-        } else if (param == "1") {
-          avatarDefinition.loaderTarget = "BoxAnimated.glb";
-        } else if (param == "2") {
-          avatarDefinition.loaderTarget = "CesiumMan.glb";
-        } else if (param == "3") {
-          avatarDefinition.loaderTarget = "Monster.glb";
-        } else if (param == "4") {
-          avatarDefinition.cubeName = "Bridge2";
-          avatarDefinition.loaderTarget = "bsTestRIG_mt.fbx";
-          avatarDefinition.loaderTargetFormat = "fbx";
-          avatarDefinition.loaderTargetAnimation = "body_e7_d13000.fbx";
-          avatarDefinition.showGroundPlane = false;
-        } else if (param == "5") {
-          avatarDefinition.loaderTarget = "DamagedHelmet.glb";
-        } else if (param == "6") {
-          avatarDefinition.loaderTarget = "bsFACE.fbx";
-          avatarDefinition.loaderTargetFormat = "fbx";
-          avatarDefinition.showGroundPlane = false;
-        } else if (param == "7") {
-          avatarDefinition.loaderTarget = "bsFACE.glb";
-          avatarDefinition.showGroundPlane = false;
-        } else if (param == "8") {
-          avatarDefinition.loaderTarget = "ball_rig.fbx";
-          avatarDefinition.showGroundPlane = false;
-          avatarDefinition.loaderTargetFormat = "fbx";
-          avatarDefinition.loaderTargetAnimation = "body_em1-B_d1000.fbx";
-        } else if (param == "9") {
-          avatarDefinition.loaderTarget = "toonTest.glb";
-          avatarDefinition.showGroundPlane = false;
-          avatarDefinition.useCubeMap = false;
-          avatarDefinition.cubeName = 'toon';
-          avatarDefinition.cubeExtension = 'jpg';
-        } else {
-          avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
-        }
-
-        window.inAvatar.startAvatar(avatarDefinition);
-
-        return true;
-      } else if (userSaid == "!stopactr") {
+      } else if (userSaid == "!!stopactr") {
         window.inAvatar.stopAvatar();
 
         return true;
@@ -1140,7 +1139,7 @@ class Hadron {
     }
 
     if (showToast) {
-      //M.toast({html: 'I\'m listening.', classes: 'rounded', displayLength: 1000});
+      inControl.showToast('I\'m listening.');
     }
 
     inControl.recoEnabled = true;
@@ -1266,11 +1265,10 @@ class Hadron {
 
   // Is it a stop command?
   isStopListeningCommand(phrase) {
-    this.consoleLog('isStop:' + phrase);
     var areEqual = this.caseInsensitiveCompare(phrase, this.stopCommand);
 
     if (areEqual) {
-      //M.toast({html: 'I am no longer listening.', classes: 'rounded', displayLength: 1000});
+      inControl.showToast('I am no longer listening.');
 
       this.inputText.val('');
       this.stopReco();
@@ -1429,15 +1427,15 @@ class Hadron {
           }
         }
       }
-    } else {
-      this.mediaView(false);
     }
 
-    if (this.mediaViewEnabled == true) {
+    // Do not reset the tts var is actr is running, it needs it.
+    if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
       this.ttsURIToCall = "";
     }
 
-    if (this.ttsURIToCall) {
+    // Do not speak if actr is running, it will do it.
+    if (this.ttsURIToCall && this.isACTRRunning() == false) {
       this.handleTTS(this.ttsURIToCall);
     }
 
@@ -1739,10 +1737,24 @@ class Hadron {
   }
 
   // Make a call to MTOne to do the TTS.  Could also speak locally in some cases but this allows for a custom voice.
-  handleTTS(uri) {
+  handleTTS(uri, startCallback, endCallback) {
     if (uri == false) {
-        return;
+      if (startCallback) {
+        startCallback();
+      }
+
+      return;
     }
+
+    if (this.ttsEnabled == false) {
+      if (startCallback) {
+        startCallback();
+      }
+
+      return;
+    }
+
+    this.lastSpokenURI = uri;
 
     $.ajax({url: uri,
         type: 'get',
@@ -1755,47 +1767,101 @@ class Hadron {
 
           if (sound_uri != false) {
             this.stopReco();
-            this.playAudio(sound_uri);
+            this.playAudio(sound_uri, startCallback, endCallback);
           }
         }
     });
   }
 
-  // Plays an audio file and stops an existing audio file.  Used by TTS, make be used by receiving an audio card.
-  playAudio(url) {
-    this.showConfigState();
 
+  // Only pause if necessary, Chrome complained sometimes.
+  pauseAudio() {
     if (this.soundObject != false) {
-      this.soundObject = false;
+      if (this.soundObject.duration > 0 && !this.soundObject.paused) {
+        this.soundObject.pause();
+      }
+
+      this.soundObject.muted = false;
+    }
+  }
+
+
+  // Plays an audio file and stops an existing audio file.  Used by TTS, make be used by receiving an audio card.
+  playAudio(url, startCallback, endCallback) {
+    this.showConfigState();
+    this.pauseAudio();
+
+    if (this.soundObject == false) {
+      this.soundObject = new Audio();
+      this.soundObject.muted = true;
     }
 
-    this.soundObject = new Audio(url);
-    this.soundObject.play();
-    this.consoleLog(url);
+    // This forces the audio to wait until it is fully loaded to play, helps with bad networks.
+    this.soundObject.preload = true;
+    this.soundObject.addEventListener('canplaythrough', () => {
+      if (startCallback) {
+        startCallback();
+      }
+    }, false);
+    this.soundObject.src = url;
+
 
     // If it was off, keep it off!
     // If there is a pause, no voice detected for a few seconds, turn off all reco.
     // If the user clicks the stop, it stops.
     // If the user says "stop listening" or something similar, it stops.
-    this.soundObject.onended = function() {
+    this.soundObject.onended = () => {
+      if (endCallback) {
+        endCallback();
+      }
+
       if (inControl.returnToReco == true) {
         setTimeout(function(){
           inControl.startReco(false);
         }, 200);
       }
     };
+
+    var playPromise = this.soundObject.play();
+
+    // In browsers that don’t yet support this functionality,
+    // playPromise won’t be defined.
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // Automatic playback started!
+      }).catch((error) => {
+        this.changeTTSState(false);
+        this.showToastDebug(error);
+        this.showToastDebug('Please press the speaker icon to let this bot speak');
+      });
+    }
+
+    this.consoleLog(url);
   }
+
+
+  // See if the avatar system is running.  This test may not be complete enough.
+  isACTRRunning() {
+    if (this.use3DAvatar == true && window.inAvatar != false) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
 
   // Calls MTOne to get chat response based on user input.
   callMTOne(text, callback) {
     var uri = "";
     var that = this;
 
+    // Reset this variable each time so TTS can work when it was appropriate.
+    this.lastSpokenURI = false;
+
     this.token = this.tokenRead();
 
     // Try to standardize any token value that could have been saved or read.
     if (this.token == false || this.token == "" || this.isUndefined(this.token) == true) {
-      this.token = "";
       this.tokenSave(this.token);
     }
 
@@ -1817,16 +1883,20 @@ class Hadron {
             this.tokenSave(json_obj.token);
           }
 
-          this.ttsURIToCall = "";
+          this.ttsURIToCall = json_obj.tts || false;
 
           if (this.ttsEnabled == true) {
             // If we are in mediaView we do NOT use TTS. Eventually should be only if the media is video but for now.
             if (this.useLocalTTS == false) {
-              this.ttsURIToCall = json_obj.tts || false;
               this.consoleLog(this.ttsURIToCall);
             } else {
               this.localTTS(json_obj.bot_said || "");
             }
+          }
+
+          if (this.isACTRRunning() == true) {
+            window.inAvatar.processACTR(json_obj.actr || false);
+            window.inAvatar.processMessages(json_obj.messages || false);
           }
 
           this.processSentiment(json_obj.sentimentValue);
@@ -1864,7 +1934,7 @@ class Hadron {
       }
 
       // Disable TTS, it would be bad over a video preso.
-      this.ttsEnabled = false;
+      this.changeTTSState(false);
 
       this.mediaViewPreservedState = this.container;
 
@@ -2075,9 +2145,6 @@ class Hadron {
          maxQuarkWidth = 360 * 0.4;
        }
 
-       //console.log("quarkWidthCalc: " + quarkWidthCalc);
-       //console.log("maxQuarkWidth: " + maxQuarkWidth);
-
        quarkWidthCalc = Math.min(quarkWidthCalc, maxQuarkWidth);
 
        quarkWidthCalc = quarkWidthCalc + "px";
@@ -2146,13 +2213,432 @@ class Hadron {
       }
     }
   }
+
+  showToast(text, heading, icon) {
+    text = text || false;
+    heading = heading || false;
+    icon = icon || false;
+
+    if (text == false) {
+      return;
+    }
+
+    if (heading == false && icon == false) {
+      $.toast({text: text, position: 'bottom-right'});
+    } else {
+      $.toast({heading: heading, text: text, icon: icon, position: 'bottom-right'});
+    }
+  }
+
+
+  showToastDebug(text, heading, icon) {
+    if (this.showDebug == false) {
+      console.log('showToastDebug: ' + text);
+
+      return;
+    }
+
+    text = text || false;
+    heading = heading || false;
+    icon = icon || false;
+
+    if (text == false) {
+      return;
+    }
+
+    if (heading == false && icon == false) {
+      $.toast({text: text, position: 'bottom-right'});
+    } else {
+      $.toast({heading: heading, text: text, icon: icon, position: 'bottom-right'});
+    }
+  }
 }
+
+
+// jQuery toast plugin created by Kamran Ahmed copyright MIT license 2015
+if ( typeof Object.create !== 'function' ) {
+    Object.create = function( obj ) {
+        function F() {}
+        F.prototype = obj;
+        return new F();
+    };
+}
+
+(function( $, window, document, undefined ) {
+    "use strict";
+
+    var Toast = {
+
+        _positionClasses : ['bottom-left', 'bottom-right', 'top-right', 'top-left', 'bottom-center', 'top-center', 'mid-center'],
+        _defaultIcons : ['success', 'error', 'info', 'warning'],
+
+        init: function (options, elem) {
+            this.prepareOptions(options, $.toast.options);
+            this.process();
+        },
+
+        prepareOptions: function(options, options_to_extend) {
+            var _options = {};
+            if ( ( typeof options === 'string' ) || ( options instanceof Array ) ) {
+                _options.text = options;
+            } else {
+                _options = options;
+            }
+            this.options = $.extend( {}, options_to_extend, _options );
+        },
+
+        process: function () {
+            this.setup();
+            this.addToDom();
+            this.position();
+            this.bindToast();
+            this.animate();
+        },
+
+        setup: function () {
+
+            var _toastContent = '';
+
+            this._toastEl = this._toastEl || $('<div></div>', {
+                class : 'jq-toast-single'
+            });
+
+            // For the loader on top
+            _toastContent += '<span class="jq-toast-loader"></span>';
+
+            if ( this.options.allowToastClose ) {
+                _toastContent += '<span class="close-jq-toast-single">&times;</span>';
+            }
+
+            if ( this.options.text instanceof Array ) {
+
+                if ( this.options.heading ) {
+                    _toastContent +='<h2 class="jq-toast-heading">' + this.options.heading + '</h2>';
+                }
+
+                _toastContent += '<ul class="jq-toast-ul">';
+                for (var i = 0; i < this.options.text.length; i++) {
+                    _toastContent += '<li class="jq-toast-li" id="jq-toast-item-' + i + '">' + this.options.text[i] + '</li>';
+                }
+                _toastContent += '</ul>';
+
+            } else {
+                if ( this.options.heading ) {
+                    _toastContent +='<h2 class="jq-toast-heading">' + this.options.heading + '</h2>';
+                }
+                _toastContent += this.options.text;
+            }
+
+            this._toastEl.html( _toastContent );
+
+            if ( this.options.bgColor !== false ) {
+                this._toastEl.css("background-color", this.options.bgColor);
+            }
+
+            if ( this.options.textColor !== false ) {
+                this._toastEl.css("color", this.options.textColor);
+            }
+
+            if ( this.options.textAlign ) {
+                this._toastEl.css('text-align', this.options.textAlign);
+            }
+
+            if ( this.options.icon !== false ) {
+                this._toastEl.addClass('jq-has-icon');
+
+                if ( $.inArray(this.options.icon, this._defaultIcons) !== -1 ) {
+                    this._toastEl.addClass('jq-icon-' + this.options.icon);
+                };
+            };
+
+            if ( this.options.class !== false ){
+                this._toastEl.addClass(this.options.class)
+            }
+        },
+
+        position: function () {
+            if ( ( typeof this.options.position === 'string' ) && ( $.inArray( this.options.position, this._positionClasses) !== -1 ) ) {
+
+                if ( this.options.position === 'bottom-center' ) {
+                    this._container.css({
+                        left: ( $(window).outerWidth() / 2 ) - this._container.outerWidth()/2,
+                        bottom: 20
+                    });
+                } else if ( this.options.position === 'top-center' ) {
+                    this._container.css({
+                        left: ( $(window).outerWidth() / 2 ) - this._container.outerWidth()/2,
+                        top: 20
+                    });
+                } else if ( this.options.position === 'mid-center' ) {
+                    this._container.css({
+                        left: ( $(window).outerWidth() / 2 ) - this._container.outerWidth()/2,
+                        top: ( $(window).outerHeight() / 2 ) - this._container.outerHeight()/2
+                    });
+                } else {
+                    this._container.addClass( this.options.position );
+                }
+
+            } else if ( typeof this.options.position === 'object' ) {
+                this._container.css({
+                    top : this.options.position.top ? this.options.position.top : 'auto',
+                    bottom : this.options.position.bottom ? this.options.position.bottom : 'auto',
+                    left : this.options.position.left ? this.options.position.left : 'auto',
+                    right : this.options.position.right ? this.options.position.right : 'auto'
+                });
+            } else {
+                this._container.addClass( 'bottom-left' );
+            }
+        },
+
+        bindToast: function () {
+
+            var that = this;
+
+            this._toastEl.on('afterShown', function () {
+                that.processLoader();
+            });
+
+            this._toastEl.find('.close-jq-toast-single').on('click', function ( e ) {
+                e.preventDefault();
+
+                if( that.options.showHideTransition === 'fade') {
+                    that._toastEl.trigger('beforeHide');
+                    that._toastEl.fadeOut(function () {
+                        that._toastEl.trigger('afterHidden');
+                    });
+                } else if ( that.options.showHideTransition === 'slide' ) {
+                    that._toastEl.trigger('beforeHide');
+                    that._toastEl.slideUp(function () {
+                        that._toastEl.trigger('afterHidden');
+                    });
+                } else {
+                    that._toastEl.trigger('beforeHide');
+                    that._toastEl.hide(function () {
+                        that._toastEl.trigger('afterHidden');
+                    });
+                }
+            });
+
+            if ( typeof this.options.beforeShow == 'function' ) {
+                this._toastEl.on('beforeShow', function () {
+                    that.options.beforeShow(that._toastEl);
+                });
+            }
+
+            if ( typeof this.options.afterShown == 'function' ) {
+                this._toastEl.on('afterShown', function () {
+                    that.options.afterShown(that._toastEl);
+                });
+            }
+
+            if ( typeof this.options.beforeHide == 'function' ) {
+                this._toastEl.on('beforeHide', function () {
+                    that.options.beforeHide(that._toastEl);
+                });
+            }
+
+            if ( typeof this.options.afterHidden == 'function' ) {
+                this._toastEl.on('afterHidden', function () {
+                    that.options.afterHidden(that._toastEl);
+                });
+            }
+
+            if ( typeof this.options.onClick == 'function' ) {
+                this._toastEl.on('click', function () {
+                    that.options.onClick(that._toastEl);
+                });
+            }
+        },
+
+        addToDom: function () {
+
+             var _container = $('.jq-toast-wrap');
+
+             if ( _container.length === 0 ) {
+
+                _container = $('<div></div>',{
+                    class: "jq-toast-wrap",
+                    role: "alert",
+                    "aria-live": "polite"
+                });
+
+                $('body').append( _container );
+
+             } else if ( !this.options.stack || isNaN( parseInt(this.options.stack, 10) ) ) {
+                _container.empty();
+             }
+
+             _container.find('.jq-toast-single:hidden').remove();
+
+             _container.append( this._toastEl );
+
+            if ( this.options.stack && !isNaN( parseInt( this.options.stack ), 10 ) ) {
+
+                var _prevToastCount = _container.find('.jq-toast-single').length,
+                    _extToastCount = _prevToastCount - this.options.stack;
+
+                if ( _extToastCount > 0 ) {
+                    $('.jq-toast-wrap').find('.jq-toast-single').slice(0, _extToastCount).remove();
+                }
+
+            }
+
+            this._container = _container;
+        },
+
+        canAutoHide: function () {
+            return ( this.options.hideAfter !== false ) && !isNaN( parseInt( this.options.hideAfter, 10 ) );
+        },
+
+        processLoader: function () {
+            // Show the loader only, if auto-hide is on and loader is demanded
+            if (!this.canAutoHide() || this.options.loader === false) {
+                return false;
+            }
+
+            var loader = this._toastEl.find('.jq-toast-loader');
+
+            // 400 is the default time that jquery uses for fade/slide
+            // Divide by 1000 for milliseconds to seconds conversion
+            var transitionTime = (this.options.hideAfter - 400) / 1000 + 's';
+            var loaderBg = this.options.loaderBg;
+
+            var style = loader.attr('style') || '';
+            style = style.substring(0, style.indexOf('-webkit-transition')); // Remove the last transition definition
+
+            style += '-webkit-transition: width ' + transitionTime + ' ease-in; \
+                      -o-transition: width ' + transitionTime + ' ease-in; \
+                      transition: width ' + transitionTime + ' ease-in; \
+                      background-color: ' + loaderBg + ';';
+
+
+            loader.attr('style', style).addClass('jq-toast-loaded');
+        },
+
+        animate: function () {
+
+            var that = this;
+
+            this._toastEl.hide();
+
+            this._toastEl.trigger('beforeShow');
+
+            if ( this.options.showHideTransition.toLowerCase() === 'fade' ) {
+                this._toastEl.fadeIn(function ( ){
+                    that._toastEl.trigger('afterShown');
+                });
+            } else if ( this.options.showHideTransition.toLowerCase() === 'slide' ) {
+                this._toastEl.slideDown(function ( ){
+                    that._toastEl.trigger('afterShown');
+                });
+            } else {
+                this._toastEl.show(function ( ){
+                    that._toastEl.trigger('afterShown');
+                });
+            }
+
+            if (this.canAutoHide()) {
+                var that = this;
+
+                window.setTimeout(function(){
+
+                    if ( that.options.showHideTransition.toLowerCase() === 'fade' ) {
+                        that._toastEl.trigger('beforeHide');
+                        that._toastEl.fadeOut(function () {
+                            that._toastEl.trigger('afterHidden');
+                        });
+                    } else if ( that.options.showHideTransition.toLowerCase() === 'slide' ) {
+                        that._toastEl.trigger('beforeHide');
+                        that._toastEl.slideUp(function () {
+                            that._toastEl.trigger('afterHidden');
+                        });
+                    } else {
+                        that._toastEl.trigger('beforeHide');
+                        that._toastEl.hide(function () {
+                            that._toastEl.trigger('afterHidden');
+                        });
+                    }
+
+                }, this.options.hideAfter);
+            }
+        },
+
+        reset: function ( resetWhat ) {
+
+            if ( resetWhat === 'all' ) {
+                $('.jq-toast-wrap').remove();
+            } else {
+                this._toastEl.remove();
+            }
+
+        },
+
+        update: function(options) {
+            this.prepareOptions(options, this.options);
+            this.setup();
+            this.bindToast();
+        },
+
+        close: function() {
+            this._toastEl.find('.close-jq-toast-single').click();
+        }
+    };
+
+    $.toast = function(options) {
+        var toast = Object.create(Toast);
+        toast.init(options, this);
+
+        return {
+
+            reset: function ( what ) {
+                toast.reset( what );
+            },
+
+            update: function( options ) {
+                toast.update( options );
+            },
+
+            close: function( ) {
+            	toast.close( );
+            }
+        };
+    };
+
+    $.toast.options = {
+        text: '',
+        heading: '',
+        showHideTransition: 'fade',
+        allowToastClose: true,
+        hideAfter: 3000,
+        loader: true,
+        loaderBg: '#9EC600',
+        stack: 5,
+        position: 'bottom-left',
+        bgColor: false,
+        textColor: false,
+        textAlign: 'left',
+        icon: false,
+        beforeShow: function () {},
+        afterShown: function () {},
+        beforeHide: function () {},
+        afterHidden: function () {},
+        onClick: function () {}
+    };
+
+})( jQuery, window, document );
+
 
 var inControl;
 window.inControl = inControl = new Hadron("inControl", ".hadron-button");
 inControl.runControl();
 
 window.onload = function() {
+  if (window.AudioContext) {
+    inControl.context = new window.AudioContext();
+  } else if (window.webkitAudioContext) {
+    inControl.context = new window.webkitAudioContext();
+  }
+
   function receiveMessage(e) {
     if (e.data == "refreshHadron") {
       inControl.refreshContol();

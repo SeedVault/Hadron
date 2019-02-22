@@ -64,11 +64,15 @@ class HadronLauncher {
 
   // Sets a flag if the parent site is running HTTPS
   checkForHTTPS() {
-    var topWindow = window.top;
+    try {
+      var topWindow = window.top;
 
-    if (topWindow.location.protocol !== 'https:') {
-      this.isSecure = false;
-    } else {
+      if (topWindow.location.protocol !== 'https:') {
+        this.isSecure = false;
+      } else {
+        this.isSecure = true;
+      }
+    } catch(err) {
       this.isSecure = true;
     }
   }
@@ -258,7 +262,7 @@ class HadronLauncher {
        frameborder: 0,
        scrolling: 'no',
        allowusermedia: true,
-       allow: "microphone *; camera *; geolocation *"
+       allow: "microphone *; camera *; geolocation *; autoplay; fullscreen;"
      }).appendTo('body');
 
      this.iframeCreated = true;

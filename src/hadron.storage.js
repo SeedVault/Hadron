@@ -22,19 +22,19 @@ export class HadronStorage {
   getItem(named) {
     var value = this.dataStore.getItem(named);
 
-    // console.log("'" + value + "' <= hadronStorage.getItem('" + named + "')");
+    console.log("'" + value + "' <= hadronStorage.getItem('" + named + "')");
 
     return value;
   }
 
   setItem(named, value) {
-    // console.log("hadronStorage.setItem('" + named + "', '" + value + "')");
+    console.log("hadronStorage.setItem('" + named + "', '" + value + "')");
 
     return this.dataStore.setItem(named, value);
   }
 
   removeItem(named) {
-    // console.log("hadronStorage.removeItem('" + named + "')");
+    console.log("hadronStorage.removeItem('" + named + "')");
 
     return this.dataStore.removeItem(named);
   }
@@ -52,7 +52,7 @@ export class HadronStorage {
   }
 
   initializeStore() {
-    //console.log(this.provider);
+    console.log(this.provider);
 
     if (this.provider == "localStorage") {
       this.dataStore = localStorage;
