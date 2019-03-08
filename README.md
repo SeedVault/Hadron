@@ -9,14 +9,18 @@ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 ### What is Hadron
 Hadron is a presentation wrapper for deploying bots in a container that can be included in a variety of website frameworks. It includes voice recognition, text to speech and 3D avatar capabilities.
 
+### Install Hadron
+```
+npm install webpack webpack-cli copy-webpack-plugin uglifyjs-webpack-plugin style-loader css-loader file-loader exports-loader imports-loader --save-dev
+npx webpack
+```
+Get started with looking at the functionality available to you: open `dist/avatar.html`.
+
 ### Live Demo of Hadron (SEED Bot)
 Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io) and on Telegram (search for @seedtokenbot)
 
 ### Test Hadron on Codepen
 https://codepen.io/BotanicTechnologies/pen/WarGxm
-
-### Live Demo of Hadron (SEED Bot)
-Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io)
 
 ### Introduction
 Part of the SEED token project. This is a sneak preview - there is more to come.
@@ -243,32 +247,3 @@ Applies a stylesheet to the Hadron launcher.  Must be served from HTTPS.
 ###### Default ""
 
 Loads a font from Google into Hadron.
-
-
-
-### More complete example
-
-```
-<span class="hadron-button"
-data-bot-animation-speed="150"
-data-bot-type-speed="10"  
-data-bot-placeholder="I'm listening..."
-data-bot-welcome="Say Hello or Hi to start chatting"  
-data-bot-user-data="1"
-</span>
-<script src="./dist/launcher.js"></script>
-```
-
-### Building Hadron
-
-```
-npm install webpack --save-dev
-npm install style-loader --save
-npm install css-loader --save
-npm install file-loader --save
-npm install copy-webpack-plugin --save-dev
-npm install exports-loader --save  
-npm install imports-loader --save
-
-npx webpack
-```
