@@ -3,7 +3,7 @@
 export default {
   also_known_as                  : "example",
   all_your_bases_are_belong_to_us: "",
-  mtone_base_uri                 : "",
+  bbot_base_uri                  : "",
   author_tool_domain             : "",
   api_key                        : ""
 };

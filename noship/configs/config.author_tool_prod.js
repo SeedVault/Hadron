@@ -5,7 +5,7 @@
 export default {
   also_known_as                  : "prod_author",
   all_your_bases_are_belong_to_us: "https://hadron.botanic.io/prod_author/",
-  mtone_base_uri                 : "https://mtone-prod.botanic.io/api/v41/",
+  bbot_base_uri                  : "https://bbot.botanic.io/",
   author_tool_domain             : "https://system.botanic.io",
   api_key                        : "bbc37f6e1382c5f8fbb9397e960152c2"
 };

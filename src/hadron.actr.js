@@ -8,7 +8,7 @@ Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 const Config = {
   also_known_as                  : `${Configalso_known_as}`,
   all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
-  mtone_base_uri                 : `${Configmtone_base_uri}`,
+  bbot_base_uri                  : `${Configbbot_base_uri}`,
   author_tool_domain             : `${Configauthor_tool_domain}`,
   api_key                        : `${Configapi_key}`
 };

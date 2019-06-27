@@ -20,7 +20,7 @@
 			"rev": "0ed945cd",
 			"serverclock": 1534791131.323073,
 			"serverclock_iso8601": "2018-08-20T11:52:11-07:00",
-			"service_order": ["chatscript_basic", "mtone", "cb_azure_text_tone", "cb_vrtests_state", "cb_botanic", "cb_animation_builder", "cb_weather", "cb_bitcoin", "cb_nbest_handler", "cb_messaging", "cb_poi_search", "cb_list_nav", "cb_recipe_search", "cb_route", "cb_radio", "cb_photos", "cb_web_search", "cb_catch_unprocessed"],
+			"service_order": ["chatscript_basic", "bbot", "cb_azure_text_tone", "cb_vrtests_state", "cb_botanic", "cb_animation_builder", "cb_weather", "cb_bitcoin", "cb_nbest_handler", "cb_messaging", "cb_poi_search", "cb_list_nav", "cb_recipe_search", "cb_route", "cb_radio", "cb_photos", "cb_web_search", "cb_catch_unprocessed"],
 			"status": "OK",
 			"timing": {
 				"on_before_tokened_call": {
@@ -76,7 +76,7 @@
 			}, {
 				"name": "nbest_question_TTS_uri",
 				"type": "string",
-				"value": "https:\/\/mtone-tts.s3.amazonaws.com\/73f1ce3a4514bc371943c0caed92c517.mp3"
+				"value": "https:\/\/bbot-tts.s3.amazonaws.com\/73f1ce3a4514bc371943c0caed92c517.mp3"
 			}, {
 				"name": "no_command_found_TTS_uri",
 				"type": "string",
@@ -1982,7 +1982,7 @@
 							"power_on": true,
 							"level": 100,
 							"color": "",
-							"uri": "https:\/\/mtone-tts.s3.amazonaws.com\/73f1ce3a4514bc371943c0caed92c517.mp3",
+							"uri": "https:\/\/bbot-tts.s3.amazonaws.com\/73f1ce3a4514bc371943c0caed92c517.mp3",
 							"order": 1,
 							"animation_track": "audio",
 							"animation_actor": "",

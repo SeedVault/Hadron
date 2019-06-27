@@ -79,7 +79,7 @@ const hadronLocal = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("local"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("./"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -162,7 +162,7 @@ const hadronDevelopers = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("beta"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/developers/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -246,7 +246,7 @@ const hadronBetaAvatar = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("beta"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/beta_3d/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),				
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -329,7 +329,7 @@ const hadronAvatar = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("beta"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/dist_3d/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -377,7 +377,7 @@ const hadronAuthorToolBeta = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("beta_author"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/beta_author/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("https://bbot.botanic.io/"),
 				"Configauthor_tool_domain": JSON.stringify("https://system-dev.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -425,7 +425,7 @@ const hadronAuthorToolDev = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("dev_author"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/dev_author/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system-dev.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -473,7 +473,7 @@ const hadronAuthorToolProd = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("prod_author"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/prod_author/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -521,7 +521,7 @@ const hadronBotOne = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("dist"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/dist/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})
@@ -570,7 +570,7 @@ const hadronCodePen = {
 			new webpack.DefinePlugin({
 				"Configalso_known_as": JSON.stringify("codepen"),
 				"Configall_your_bases_are_belong_to_us": JSON.stringify("https://hadron.botanic.io/codepen/"),
-				"Configmtone_base_uri": JSON.stringify("BASEPATH/api/v41/"),
+				"Configbbot_base_uri": JSON.stringify("http://localhost:5000/restful_channel"),
 				"Configauthor_tool_domain": JSON.stringify("https://system.botanic.io"),
 				"Configapi_key": JSON.stringify("APIKEY")
 			})

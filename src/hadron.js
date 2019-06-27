@@ -9,7 +9,7 @@
 const Config = {
   also_known_as                  : `${Configalso_known_as}`,
   all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
-  mtone_base_uri                 : `${Configmtone_base_uri}`,
+  bbot_base_uri                  : `${Configbbot_base_uri}`,
   author_tool_domain             : `${Configauthor_tool_domain}`,
   api_key                        : `${Configapi_key}`
 };
@@ -131,7 +131,7 @@ class Hadron {
       this.rootFlowUUID       = this.getControlData("bot-user-data", "");
       this.chromeless         = this.getControlData("bot-without-chrome", false, "bool");
       this.botAutoOpens       = this.getControlData("bot-auto-opens", false, "bool");
-      this.MTOneBaseUrl       = this.getControlData("bot-mtone-uri", Config.mtone_base_uri);
+      this.BBotBaseUrl        = this.getControlData("bot-bbot-uri", Config.bbot_base_uri);
       this.botUserData        = this.getControlData("bot-user-data-json", "");
 
       this.botsFirstMessage   = this.getControlData("bot-first-message", "hi");
@@ -151,6 +151,7 @@ class Hadron {
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
+      this.userId             = this.getControlData("bot-id", this.getAnonymousUserId());
       this.botId              = this.getControlData("bot-id", Config.api_key);
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
@@ -239,6 +240,18 @@ class Hadron {
       this.priorityInitialization();
       this.loadPrerequsites();
   	}
+        
+    //Returns a new anonymous user id
+    getAnonymousUserId() {
+        return 'hadron_anon_' + this.botId + '_' + this.s4 + this.s4;        
+    }
+    
+    //Returns an alphanumeric random string
+    s4() {
+        return Math.floor((1 + Math.random()) * 0x10000)
+                        .toString(16)
+                        .substring(1);
+    }
 
     // Check & flag what exists and if we need to monitor resources.
     checkDeviceCapabilites() {
@@ -581,7 +594,7 @@ class Hadron {
         return;
       }
 
-      var uri = inControl.MTOneBaseUrl + "auth/gndn/?token=" + inControl.token;
+      var uri = inControl.BBotBaseUrl + "auth/gndn/?token=" + inControl.token;
 
       $.ajax({url: uri,
           type: 'get',
@@ -610,13 +623,13 @@ class Hadron {
               inControl.clearToken();
             }
 
-            responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
+            responseText = this.callBBot("solongfarewellaufwiedersehen", function(botSaid, cards) {
               setTimeout(() => {
                 inControl.textAreaEnabled(true); //JEMHERE
               }, inControl.firstVolleyPause);
             });
          } else {
-           responseText = this.callMTOne(this.botsFirstMessage, function(botSaid, cards) {
+           responseText = this.callBBot(this.botsFirstMessage, function(botSaid, cards) {
              setTimeout(() => {
                inControl.textAreaEnabled(true); //JEMHERE
              }, inControl.firstVolleyPause);
@@ -630,7 +643,7 @@ class Hadron {
               inControl.clearToken();
             }
 
-            var responseText = this.callMTOne("solongfarewellaufwiedersehen", function(botSaid, cards) {
+            var responseText = this.callBBot("solongfarewellaufwiedersehen", function(botSaid, cards) {
               //inControl.talk(false);
               setTimeout(() => {
                 inControl.textAreaEnabled(true); //JEMHERE
@@ -925,10 +938,10 @@ class Hadron {
 
           this.avatarState('acknowledge');
 
-          // call MTOne after a slight delay.  MTOne can answer so quickly that it breaks behavior.
+          // call BBot after a slight delay.  BBot can answer so quickly that it breaks behavior.
           // var userSaid = this.inputText.val();
           setTimeout(() => {
-            var responseText = this.callMTOne(userSaid, function(botSaid, cards) {
+            var responseText = this.callBBot(userSaid, function(botSaid, cards) {
 
             });
           }, 50);
@@ -1044,7 +1057,7 @@ class Hadron {
         msg.push('Hadron Config');
         msg.push('Also known as: ' + Config.also_known_as);
         msg.push('AYBABTU: '       + Config.all_your_bases_are_belong_to_us);
-        msg.push('MTOne URI: '     + Config.mtone_base_uri);
+        msg.push('BBot URI: '      + Config.bbot_base_uri);
         msg.push('Author Tool: '   + Config.author_tool_domain);
         msg.push('Key: '           + Config.api_key);
 
@@ -1373,8 +1386,8 @@ class Hadron {
     }
   }
 
-  // This receives the info from MTOne both text and card array
-  processResponse(botSaid, cards) {
+  // This receives the info from BBot both text and card array
+  processResponse(botSaid, cards, bbot_response) {
     if (this.isUndefined(botSaid) == true) {
       return;
     }
@@ -1390,7 +1403,8 @@ class Hadron {
     var messages = [];
     for (var index = 0, len = botSaid.length; index < len; ++index) {
       if (botSaid[index].speech != "") {
-        var botSaidAfter = this.parseBotResponse(botSaid[index].speech);
+        //var botSaidAfter = this.parseBotResponse(botSaid[index].speech);
+        var botSaidAfter = botSaid[index].speech;
 
         var withMedia = this.convertMedia(botSaidAfter);
 
@@ -1736,7 +1750,7 @@ class Hadron {
     return message;
   }
 
-  // Make a call to MTOne to do the TTS.  Could also speak locally in some cases but this allows for a custom voice.
+  // Make a call to BBot to do the TTS.  Could also speak locally in some cases but this allows for a custom voice.
   handleTTS(uri, startCallback, endCallback) {
     if (uri == false) {
       if (startCallback) {
@@ -1850,14 +1864,14 @@ class Hadron {
   }
 
 
-  // Calls MTOne to get chat response based on user input.
-  callMTOne(text, callback) {
+  // Calls BBot to get chat response based on user input.
+  callBBot(text, callback) {
     var uri = "";
     var that = this;
 
     // Reset this variable each time so TTS can work when it was appropriate.
     this.lastSpokenURI = false;
-
+/*
     this.token = this.tokenRead();
 
     // Try to standardize any token value that could have been saved or read.
@@ -1865,7 +1879,7 @@ class Hadron {
       this.tokenSave(this.token);
     }
 
-    uri = this.MTOneBaseUrl + "social/chatbot/?service=chatbot_router&uid=" + this.botId + "&type=text&handler=" + this.botHandler + "&text=" + encodeURIComponent(text) + "&user_data_json=" + encodeURI(this.botUserData);
+    uri = this.BBotBaseUrl + "social/chatbot/?service=chatbot_router&uid=" + this.botId + "&type=text&handler=" + this.botHandler + "&text=" + encodeURIComponent(text) + "&user_data_json=" + encodeURI(this.botUserData);
     if (this.token !== "") {
       uri += "&token=" + this.token;
     }
@@ -1873,12 +1887,41 @@ class Hadron {
     if (this.rootFlowUUID !== "") {
       uri += "&user_data=" + this.rootFlowUUID;
     }
+  */  
+    //hardcode to test bbot
+    var ttsTimeScale;
+    if (this.isACTRRunning()) {
+      ttsTimeScale = window.inAvatar.options.ttsTimeScale
+    } else {
+      ttsTimeScale = 100
+    }
 
-    $.ajax({url: uri,
-        type: 'get',
-        dataType: 'JSON',
+    var req_params = {
+        'orgId': 1,
+        'botId': this.botId,
+        'userId': this.userId,
+        'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
+        'actrEnabled': this.isACTRRunning(), 
+        'ttsTimeScale': ttsTimeScale,
+        'input': {
+            'text': text
+        }
+    };
+    
+    $.ajax({url: this.BBotBaseUrl,
+        type: 'post',
+        dataType: 'json',
+        xhrFields: {
+            withCredentials: true
+        },
+        crossDomain: true,
+        contentType: 'application/json; charset=utf-8',
+        data: JSON.stringify(req_params),
         context: this,
-        success: function(json_obj){
+        success: function(response){
+            
+          var json_obj = this.processBbotResponse(response);
+            
           if (inControl.isUndefined(json_obj.token) == false) {
             this.tokenSave(json_obj.token);
           }
@@ -1901,11 +1944,92 @@ class Hadron {
 
           this.processSentiment(json_obj.sentimentValue);
 
-          this.processResponse(json_obj.messages, json_obj.cards);
+          this.processResponse(json_obj.messages, json_obj.cards, response);
 
           callback(json_obj.messages, json_obj.cards);
     }});
   }
+
+    //convert legacy protocol to bbot protocol
+    processBbotResponse(bbot_response) {          
+        console.log("bbot response");
+        console.log(bbot_response);
+        var messages = [];
+        var cards = [];
+        var buttons = [];
+        var speech_synth = ''
+        bbot_response.output.forEach(function(br, index, array) {
+            //get bbot response type
+            var type = Object.keys(br)[0];
+            
+            if (type == 'text') {
+                messages.push({
+                    'speech': br[type], 
+                    'type': 0
+                });
+            }
+            if (type == 'image') {
+                cards.push({
+                    'contentType': 'application/vnd.microsoft.card.image', 
+                    'content': {
+                        'images': [{
+                                'url': br[type].url
+                            }]
+                    }});
+            }
+            if (type == 'video') {
+                cards.push({
+                    'contentType': 'application/vnd.microsoft.card.video', 
+                    'content': {
+                        'media': [{
+                                'url': br[type].url
+                            }],                      
+                        'image': [{
+                                'url': ''
+                            }]
+                    }});
+            }
+            if (type == 'audio') {
+                cards.push({
+                    'contentType': 'application/vnd.microsoft.card.audio', 
+                    'content': {
+                        'media': [{
+                                'url': br[type].url
+                            }],                      
+                        'image': [{
+                                'url': ''
+                            }]
+                    }});
+            }
+            if (type == 'button') {
+                buttons.push({             
+                            'title': br[type].text,
+                            'value': br[type].postback,
+                            'type':'postback'
+                        }
+                
+               );
+            }
+                            
+        });
+        
+        if (buttons.length) {
+            cards.push({
+                'content': {
+                    'buttons': buttons
+                }
+            });
+        }
+        
+        var json_obj = {
+           'messages': messages,
+           'cards': [cards],              
+        };
+        
+        console.log("converted output");
+        console.log(json_obj);
+        return json_obj;
+    }
 
   // Displays sentiment if enabled.
   processSentiment(sentimentValue) {
@@ -1995,7 +2119,7 @@ class Hadron {
     }
 
     if (type != 'openUrl') {
-      var responseText = this.callMTOne(key, function(botSaid, cards) {
+      var responseText = this.callBBot(key, function(botSaid, cards) {
       });
     } else {
       var win = window.open(key, '_blank');
