@@ -243,7 +243,7 @@ class Hadron {
         
     //Returns a new anonymous user id
     getAnonymousUserId() {
-        return 'hadron_anon_' + this.botId + '_' + this.s4 + this.s4;        
+        return 'hadron_anon_' + this.botId + '_' + this.s4() + this.s4();        
     }
     
     //Returns an alphanumeric random string
