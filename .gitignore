@@ -1,5 +1,7 @@
-/nbproject/
-/builds/
+nbproject/
+builds/
+noship/
+dist/
 src/config.beta.js
 src/config.botonebbot.js
 src/config.sequoia.js
