@@ -17,7 +17,7 @@ const Config = {
   all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
   bbot_base_uri                  : `${Configbbot_base_uri}`,
   author_tool_domain             : `${Configauthor_tool_domain}`,
-  api_key                        : `${Configapi_key}`
+  bbot_id                        : `${Configbbot_id}`
 };
 
 

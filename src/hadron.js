@@ -11,7 +11,7 @@ const Config = {
   all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
   bbot_base_uri                  : `${Configbbot_base_uri}`,
   author_tool_domain             : `${Configauthor_tool_domain}`,
-  api_key                        : `${Configapi_key}`
+  botId                          : `${Configbbot_id}`
 };
 
 
@@ -152,7 +152,7 @@ class Hadron {
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.userId             = this.getControlData("bot-id", this.getAnonymousUserId());
-      this.botId              = this.getControlData("bot-id", Config.api_key);
+      this.botId              = this.getControlData("bot-id", Config.botId);
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
       this.recallInteractions = this.getControlData("bot-recall-interactions", 0); // number of interactions to be remembered and brought back upon restart
@@ -1059,7 +1059,7 @@ class Hadron {
         msg.push('AYBABTU: '       + Config.all_your_bases_are_belong_to_us);
         msg.push('BBot URI: '      + Config.bbot_base_uri);
         msg.push('Author Tool: '   + Config.author_tool_domain);
-        msg.push('Key: '           + Config.api_key);
+        msg.push('Key: '           + Config.botId);
 
         convo = { ice: { says: msg, reply: [] } };
 
