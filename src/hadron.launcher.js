@@ -7,18 +7,28 @@
 
 
 const Config = {
-  also_known_as                  : `${Configalso_known_as}`,
-  all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
-  bbot_base_uri                  : `${Configbbot_base_uri}`,
-  author_tool_domain             : `${Configauthor_tool_domain}`,
-  bbot_id                        : `${Configbbot_id}`
+  also_known_as                  : "",
+  all_your_bases_are_belong_to_us: "",
+  bbot_base_uri                  : "",
+  author_tool_domain             : "",
+  bbot_id                        : ""
 };
 
 
 // Load the storage facade
 import {HadronStorage} from './hadron.storage.js';
 
-import './css/launcher.css';
+import './assets/css/launcher.css';
+
+//These should be in hadron.js but dynamically imported js is not loading them
+import './assets/css/input.css';
+import './assets/css/reply.css';
+import './assets/css/says.css';
+import './assets/css/setup.css';
+import './assets/css/sprites.css';
+import './assets/css/typing.css';
+
+import './assets/css/jquery.toast.css';
 
 // Bare style, bare interactions.  Click to grow.
 // Create iframe
@@ -254,7 +264,9 @@ class HadronLauncher {
     data.botIsSecure = this.isSecure;
 
     var params = jQuery.param( data );
-    var uri = this.chatWindowURI + "?" + params;
+    //var uri = this.chatWindowURI + "?" + params;
+    var uri = "hadron.html?" + params;
+  /*
     jQuery('<iframe>', {
        src: uri,
        id:  'hadron-iframe',
@@ -266,6 +278,12 @@ class HadronLauncher {
      }).appendTo('body');
 
      this.iframeCreated = true;
+     */
+    
+    import(/* webpackChunkName: "hadron" */ './hadron.js').then(() => {
+
+    })//.catch(error => 'An error occurred while loading the component');
+    
   }
 
   regLookUp(successCallback) {

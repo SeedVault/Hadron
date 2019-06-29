@@ -1,17 +1,39 @@
- /*jshint esversion: 6 */
+/*jshint esversion: 6 */
 
 /*
  These files are made available to you on an as-is and restricted basis, and may only be redistributed or sold to any third party as expressly indicated in the Terms of Use for Seed Vault.
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
+/*
+import './assets/css/input.css';
+import './assets/css/reply.css';
+import './assets/css/says.css';
+import './assets/css/setup.css';
+import './assets/css/sprites.css';
+import './assets/css/typing.css';
+
+import './assets/css/jquery.toast.css';
+*/
+
+import Artyom from 'artyom.js';
+
+// Load the storage facade
+import {HadronStorage} from './hadron.storage.js';
+
+// Load Avatar support
+import {HadronAvatar} from './hadron.avatar.js';
+import {HadronActr} from './hadron.actr.js';
+
+import * as Modernizr from './lib/modernizr.js'
+
 
 const Config = {
-  also_known_as                  : `${Configalso_known_as}`,
-  all_your_bases_are_belong_to_us: `${Configall_your_bases_are_belong_to_us}`,
-  bbot_base_uri                  : `${Configbbot_base_uri}`,
-  author_tool_domain             : `${Configauthor_tool_domain}`,
-  botId                          : `${Configbbot_id}`
+  also_known_as                  : "",
+  all_your_bases_are_belong_to_us: "",
+  bbot_base_uri                  : "",
+  author_tool_domain             : "",
+  bbotId                         : ""
 };
 
 
@@ -21,14 +43,6 @@ const Config = {
 
 //Better way to process video OR disable.  Better = only do the exchange of the link and/or a href entirely but NOT the whole string.
 
-import './css/input.css';
-import './css/reply.css';
-import './css/says.css';
-import './css/setup.css';
-import './css/sprites.css';
-import './css/typing.css';
-
-import './css/toast/jquery.toast.css';
 
 window.inAvatar = false;
 
@@ -37,21 +51,6 @@ window.addEventListener('error', function (e) {
   var error = e.error;
   console.log(error);
 });
-
-
-import $ from './javascript/jquery3/jquery-3.3.1.js';
-window.jQuery = $;
-window.$ = $;
-
-import './javascript/modernizr/modernizr-custom.js';
-import Artyom from './javascript/artyom/artyom.js';
-
-// Load the storage facade
-import {HadronStorage} from './hadron.storage.js';
-
-// Load Avatar support
-import {HadronAvatar} from './hadron.avatar.js';
-import {HadronActr} from './hadron.actr.js';
 
 
 // The core class of Hadron
@@ -151,7 +150,7 @@ class Hadron {
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
-      this.userId             = this.getControlData("bot-id", this.getAnonymousUserId());
+      this.userId             = this.getControlData("bot-userid", this.getAnonymousUserId());
       this.botId              = this.getControlData("bot-id", Config.botId);
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
@@ -194,7 +193,7 @@ class Hadron {
       if (this.recallInteractions != 0) {
         this.consoleLog('recallInteractions: ' + this.recallInteractions);
 
-        this.interactionsHistory = (this.storageAvailable && JSON.parse(inControl.hadronStorage.getItem(this.interactionsLS))) || [];
+        this.interactionsHistory = (this.storageAvailable && JSON.parse(this.hadronStorage.getItem(this.interactionsLS))) || [];
       } else {
         this.interactionsHistory = {};
       }
@@ -216,18 +215,6 @@ class Hadron {
         this.botIcon = Config.all_your_bases_are_belong_to_us + "css/images/" + Config.also_known_as + ".png";
       }
 
-      // Make sure to create or use or update the JSON structure.
-      if (this.botUserData == "") {
-        this.botUserData = '{"botAuthorsToolDomain": "' + Config.author_tool_domain + '"}';
-      }
-
-      var bud = JSON.parse(this.botUserData);
-
-      if (this.isUndefined(bud.botAuthorsToolDomain)) {
-        bud.botAuthorsToolDomain = Config.author_tool_domain;
-      }
-
-      this.botUserData = JSON.stringify(bud);
 
       this.testToken(() => {
       //  this.consoleLog('Token: ' + this.token);
@@ -310,9 +297,9 @@ class Hadron {
     // Reads data elements from a control, applies a format and tests.
     getControlData(field, defaultValue = false, dataType = "string") {
       var foundData = this.hadronButton.data(field);
-
       foundData = this.urldecode(foundData);
 
+      
       if (this.isUndefined(foundData)) {
         foundData = defaultValue;
       }
@@ -502,10 +489,10 @@ class Hadron {
 
           if (this.showRefresh == true) {
             $("#hadron-refresh").click(() => {
-              if (inControl.hijackRefresh == "") {
-                inControl.refreshContol(true);
+              if (this.hijackRefresh == "") {
+                this.refreshContol(true);
               } else {
-                top.window.location.href = inControl.hijackRefresh;
+                top.window.location.href = this.hijackRefresh;
               }
             });
           }
@@ -542,14 +529,14 @@ class Hadron {
         //$(this.quarkWrap).on( "DOMMouseScroll", function( event ) {
           //event.preventDefault();
         //  event.stopPropagation();
-        //  inControl.consoleLog('gulp DOMMouseScroll');
+        //  this.consoleLog('gulp DOMMouseScroll');
         //});
 
         // This changes nothing at all so far... Wasted effort
         //$(document).on( "mousewheel", function( event ) {
           //event.preventDefault();
         //  event.stopPropagation();
-        //  inControl.consoleLog('gulp mousewheel');
+        //  this.consoleLog('gulp mousewheel');
         //});
 
 
@@ -579,22 +566,22 @@ class Hadron {
         inControl = this;
       }
 
-      if (inControl.tokenChecked == true) {
+      if (this.tokenChecked == true) {
         callback();
         return;
       }
 
-      inControl.tokenChecked = true;
+      this.tokenChecked = true;
 
-      inControl.token = this.tokenRead();
+      this.token = this.tokenRead();
 
-      if (inControl.token == "") {
+      if (this.token == "") {
         callback();
 
         return;
       }
 
-      var uri = inControl.BBotBaseUrl + "auth/gndn/?token=" + inControl.token;
+      var uri = this.BBotBaseUrl + "auth/gndn/?token=" + this.token;
 
       $.ajax({url: uri,
           type: 'get',
@@ -604,7 +591,7 @@ class Hadron {
             if (result.response.information.code  <= 202) {
               callback();
             } else {
-              inControl.tokenSave("");
+              this.tokenSave("");
               callback();
             }
           }
@@ -620,19 +607,19 @@ class Hadron {
 
           if (userRequested == true || this.botResetOnLoad == true) {
             if (this.botResetClearsToken) {
-              inControl.clearToken();
+              this.clearToken();
             }
-
-            responseText = this.callBBot("solongfarewellaufwiedersehen", function(botSaid, cards) {
+            
+            responseText = this.callBBot("solongfarewellaufwiedersehen", (botSaid, cards) => {console.log(this)
               setTimeout(() => {
-                inControl.textAreaEnabled(true); //JEMHERE
-              }, inControl.firstVolleyPause);
+                this.textAreaEnabled(true); //JEMHERE
+              }, this.firstVolleyPause);
             });
          } else {
-           responseText = this.callBBot(this.botsFirstMessage, function(botSaid, cards) {
+           responseText = this.callBBot(this.botsFirstMessage, (botSaid, cards) => {
              setTimeout(() => {
-               inControl.textAreaEnabled(true); //JEMHERE
-             }, inControl.firstVolleyPause);
+               this.textAreaEnabled(true); //JEMHERE
+             }, this.firstVolleyPause);
            });
          }
        }, 1);
@@ -640,20 +627,20 @@ class Hadron {
         setTimeout(() => {
           if (userRequested == true || this.botResetOnLoad == true) {
             if (this.botResetClearsToken) {
-              inControl.clearToken();
+              this.clearToken();
             }
 
-            var responseText = this.callBBot("solongfarewellaufwiedersehen", function(botSaid, cards) {
-              //inControl.talk(false);
+            var responseText = this.callBBot("solongfarewellaufwiedersehen", (botSaid, cards) => {
+              //this.talk(false);
               setTimeout(() => {
-                inControl.textAreaEnabled(true); //JEMHERE
-              }, inControl.firstVolleyPause);
+                this.textAreaEnabled(true); //JEMHERE
+              }, this.firstVolleyPause);
             });
           } else {
-            inControl.talk(false);
+            this.talk(false);
             setTimeout(() => {
-              inControl.textAreaEnabled(true); //JEMHERE
-            }, inControl.firstVolleyPause);
+              this.textAreaEnabled(true); //JEMHERE
+            }, this.firstVolleyPause);
           }
         }, 100);
       }
@@ -663,20 +650,20 @@ class Hadron {
     refreshContol(userRequested) {
       this.mediaView(false);
 
-      inControl.quarkWrap.html('');
-      inControl.quarkWrap.append(this.quarkTyping);
+      this.quarkWrap.html('');
+      this.quarkWrap.append(this.quarkTyping);
 
-      inControl.testToken(() => {
+      this.testToken(() => {
         var animationDelay = this.animationTime * this.typeSpeed;
-        if (inControl.doNotTrack) {
-          var convo = { ice: { says: [inControl.doNotTrackText], reply: [] } };
-          inControl.talk(convo);
+        if (this.doNotTrack) {
+          var convo = { ice: { says: [this.doNotTrackText], reply: [] } };
+          this.talk(convo);
 
           setTimeout(() => {
-            inControl.refreshContolInner(userRequested);
+            this.refreshContolInner(userRequested);
           }, animationDelay);
         } else {
-          inControl.refreshContolInner(userRequested);
+          this.refreshContolInner(userRequested);
         }
       });
     }
@@ -732,7 +719,7 @@ class Hadron {
         return;
       }
 
-      inControl.hadronStorage.setItem(this.interactionsLS, JSON.stringify(this.interactionsHistory));
+      this.hadronStorage.setItem(this.interactionsLS, JSON.stringify(this.interactionsHistory));
 
       this.consoleLog("-----HISTORYSAVECOMMIT-----");
       this.consoleLog(this.interactionsHistory);
@@ -743,7 +730,7 @@ class Hadron {
       if (this.storageAvailable == false) {
         return "";
       } else {
-        var token = inControl.hadronStorage.getItem(this.tokenLS) || "";
+        var token = this.hadronStorage.getItem(this.tokenLS) || "";
 
         console.log("tokenRead: " + token);
 
@@ -763,12 +750,12 @@ class Hadron {
     tokenSave(token) {
       console.log("tokenSave: " + token);
 
-      inControl.token = token;
+      this.token = token;
 
       if (this.storageAvailable == false) {
         return;
       } else {
-        inControl.hadronStorage.setItem(this.tokenLS, token);
+        this.hadronStorage.setItem(this.tokenLS, token);
       }
     }
 
@@ -813,7 +800,7 @@ class Hadron {
           if (this.recoEnabled) {
             imageClass = 'quark-reco-button-on';
 
-            inControl.showToast('I\'m listening.');
+            this.showToast('I\'m listening.');
 
             // Start reco.
             this.startReco(true);
@@ -826,18 +813,18 @@ class Hadron {
 
         recoIcon = $('<img>', {id: 'quark-reco-icon', class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
         recoIcon.click(function() {
-          if (inControl.recoVisible) {
+          if (this.recoVisible) {
             if ($(this).hasClass('quark-reco-button-on')) {
               // A click absolutely disables reco.
-              inControl.returnToReco = false;
+              this.returnToReco = false;
 
-              inControl.stopReco();
+              this.stopReco();
             } else {
-              inControl.startReco(true);
+              this.startReco(true);
             }
           }
 
-          inControl.inputText.focus();
+          this.inputText.focus();
         });
 
         recoContainer.append(recoIcon);
@@ -858,21 +845,21 @@ class Hadron {
         this.ttsIcon = $('<img>', {class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
 
         this.ttsIcon.click(() => {
-          if (inControl.soundObject) {
-            inControl.soundObject.muted = false;
+          if (this.soundObject) {
+            this.soundObject.muted = false;
           } else {
-            inControl.playAudio(Config.all_your_bases_are_belong_to_us + '500-milliseconds-of-silence.mp3');
+            this.playAudio(Config.all_your_bases_are_belong_to_us + '500-milliseconds-of-silence.mp3');
           }
 
-          inControl.context.resume().then(() => {
+          this.context.resume().then(() => {
             console.log('Playback resumed successfully');
           });
 
-          if (inControl.ttsVisible) {
-            inControl.changeTTSState(!this.ttsEnabled);
+          if (this.ttsVisible) {
+            this.changeTTSState(!this.ttsEnabled);
           }
 
-          inControl.inputText.focus();
+          this.inputText.focus();
         });
 
         ttsContainer.append(this.ttsIcon);
@@ -921,7 +908,7 @@ class Hadron {
             sentimentPlaceholder = '<span class="quark-sentiment-placeholder">&nbsp;</span>';
           }
 
-          if (inControl.hideButtonsWhenClicked) {
+          if (this.hideButtonsWhenClicked) {
             $('.quark-button-wrap').hide();
           }
 
@@ -967,22 +954,22 @@ class Hadron {
 
 
   changeTTSState(state) {
-    inControl.inputText.focus();
+    this.inputText.focus();
 
-    if (inControl.ttsVisible) {
-      inControl.ttsEnabled = state;
+    if (this.ttsVisible) {
+      this.ttsEnabled = state;
 
       if (state == false) {
-        inControl.ttsIcon.addClass('quark-tts-button-off');
-        inControl.ttsIcon.removeClass('quark-tts-button-on');
+        this.ttsIcon.addClass('quark-tts-button-off');
+        this.ttsIcon.removeClass('quark-tts-button-on');
 
-        inControl.pauseAudio();
+        this.pauseAudio();
       } else {
-        inControl.ttsIcon.addClass('quark-tts-button-on');
-        inControl.ttsIcon.removeClass('quark-tts-button-off');
+        this.ttsIcon.addClass('quark-tts-button-on');
+        this.ttsIcon.removeClass('quark-tts-button-off');
       }
 
-      inControl.ttsIcon.hide().show(0);
+      this.ttsIcon.hide().show(0);
     }
   }
 
@@ -1122,7 +1109,7 @@ class Hadron {
   // Start the recognizer
   startReco(showToast) {
     //JEM Need to ensure this isn't necessary.
-    //if (inControl.recoEnabled == false) {
+    //if (this.recoEnabled == false) {
     //  return;
     //}
 
@@ -1142,25 +1129,25 @@ class Hadron {
           alert("An error ocurred, it seems the access to your microphone is denied");
         }
 
-        inControl.consoleLog(error.message);
+        this.consoleLog(error.message);
       });
 
       if (this.recoObject.recognizingSupported == false) {
-        inControl.recoEnabled = false;
+        this.recoEnabled = false;
         return;
       }
     }
 
     if (showToast) {
-      inControl.showToast('I\'m listening.');
+      this.showToast('I\'m listening.');
     }
 
-    inControl.recoEnabled = true;
+    this.recoEnabled = true;
 
-    if (inControl.recoContinuous == true) {
-      inControl.returnToReco = true;
+    if (this.recoContinuous == true) {
+      this.returnToReco = true;
     } else {
-      inControl.returnToReco = false;
+      this.returnToReco = false;
     }
 
     if (this.recoEnabled == true) {
@@ -1189,18 +1176,18 @@ class Hadron {
             isFinal = true;
           }
 
-          inControl.consoleLog("interimText: " + interimText);
-          inControl.consoleLog("temporalText:" + temporalText);
-          inControl.consoleLog("isFinal:" + isFinal);
+          this.consoleLog("interimText: " + interimText);
+          this.consoleLog("temporalText:" + temporalText);
+          this.consoleLog("isFinal:" + isFinal);
 
           if (!isFinal) {
-            inControl.inputText.val(interimText);
+            this.inputText.val(interimText);
           } else {
             if (this.recoObject != false) {
-              inControl.recoInput(temporalText);
+              this.recoInput(temporalText);
             }
 
-            inControl.stopReco();
+            this.stopReco();
           }
         },
         onStart:function(){
@@ -1222,7 +1209,7 @@ class Hadron {
       $('#quark-reco-icon').removeClass('quark-reco-button-on');
       $('#quark-reco-icon').addClass('quark-reco-button-off');
 
-      inControl.recoEnabled = false;
+      this.recoEnabled = false;
 
       if (this.userDictation) {
         this.userDictation.stop();
@@ -1237,9 +1224,9 @@ class Hadron {
       language = "en-US";
     }
 
-    if (inControl.recoObject == false) {
-      inControl.recoObject = new Artyom();
-      inControl.recoObject.initialize({
+    if (this.recoObject == false) {
+      this.recoObject = new Artyom();
+      this.recoObject.initialize({
         lang: language,
         debug: true, // Show what recognizes in the Console
         listen: true, // Start listening after this
@@ -1250,13 +1237,13 @@ class Hadron {
       });
     }
 
-    inControl.recoObject.say(phrase, {
+    this.recoObject.say(phrase, {
       onStart:function(){
       },
       onEnd:function(){
-        if (inControl.returnToReco == true) {
+        if (this.returnToReco == true) {
           setTimeout(function(){
-            inControl.startReco(false);
+            this.startReco(false);
           }, 200);
         }
       }
@@ -1281,7 +1268,7 @@ class Hadron {
     var areEqual = this.caseInsensitiveCompare(phrase, this.stopCommand);
 
     if (areEqual) {
-      inControl.showToast('I am no longer listening.');
+      this.showToast('I am no longer listening.');
 
       this.inputText.val('');
       this.stopReco();
@@ -1345,7 +1332,7 @@ class Hadron {
       turn.reply.reverse();
       for (var i = 0; i < turn.reply.length; i++) {
         ((el, count) => {
-          var clickEvent = 'window.inControl.answer("' + el.answer + '", "' + el.question + '", "' + el.type + '");';
+          var clickEvent = 'window.this.answer("' + el.answer + '", "' + el.question + '", "' + el.type + '");';
           var questionHTML = $('<a>', {class: "quark-button quark-choices btn left-align " + this.buttonClass, style:"animation-delay: " + this.animationTime / 2 * count + "ms", text: el.question, onClick: clickEvent});
           questionsHTML = questionsHTML + questionHTML.prop('outerHTML');
 
@@ -1459,10 +1446,10 @@ class Hadron {
 
     $('#mediaplayer').on('ended', function() {
       //console.log('ended');
-      if (inControl.returnToReco == true) {
+      if (this.returnToReco == true) {
         //console.log('recoResume');
         setTimeout(function(){
-          inControl.startReco(false);
+          this.startReco(false);
         }, 200);
       }
     });
@@ -1507,13 +1494,13 @@ class Hadron {
 
     if (botSaid.includes("HADRONSTARTVOICERECO")) {
       botSaid = botSaid.replace("HADRONSTARTVOICERECO", "");
-      inControl.recoEnabled = true;
-      inControl.returnToReco = true;
+      this.recoEnabled = true;
+      this.returnToReco = true;
     }
 
     if (botSaid.includes("HADRONSTOPVOICERECO")) {
       botSaid = botSaid.replace("HADRONSTOPVOICERECO", "");
-      inControl.stopReco();
+      this.stopReco();
     }
 
     if (botSaid.includes("HADRONBREAK1")) {
@@ -1719,7 +1706,7 @@ class Hadron {
   videoHandler(image, video, autoplay) {
     var media = "";
 
-    if (video.endsWith('fullscreen') || inControl.mediaViewEnabled) {
+    if (video.endsWith('fullscreen') || this.mediaViewEnabled) {
       media  = '<video id="mediaplayer" class="responsive-video" poster="' + image + '" autoplay>';
     } else {
       media  = '<video id="mediaplayer" class="responsive-video" poster="' + image + '" autoplay controls controlsList="nodownload">';
@@ -1829,9 +1816,9 @@ class Hadron {
         endCallback();
       }
 
-      if (inControl.returnToReco == true) {
+      if (this.returnToReco == true) {
         setTimeout(function(){
-          inControl.startReco(false);
+          this.startReco(false);
         }, 200);
       }
     };
@@ -1899,10 +1886,7 @@ class Hadron {
     var req_params = {
         'orgId': 1,
         'botId': this.botId,
-        'userId': this.userId,
-        'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
-        'actrEnabled': this.isACTRRunning(), 
-        'ttsTimeScale': ttsTimeScale,
+        'userId': this.userId,        
         'input': {
             'text': text
         }
@@ -1922,7 +1906,7 @@ class Hadron {
             
           var json_obj = this.processBbotResponse(response);
             
-          if (inControl.isUndefined(json_obj.token) == false) {
+          if (this.isUndefined(json_obj.token) == false) {
             this.tokenSave(json_obj.token);
           }
 
@@ -2102,7 +2086,7 @@ class Hadron {
 
   // navigate "answers"
   answer(key, content, type) {
-    if (inControl.hideButtonsWhenClicked) {
+    if (this.hideButtonsWhenClicked) {
       var sentimentPlaceholder = "";
 
       if (this.showSentiment) {
@@ -2162,8 +2146,8 @@ class Hadron {
     var position = 0;
     for (var nextCallback = position + q.length - 1; nextCallback >= position; nextCallback--) {
       ((callback, index) => {
-        start = function() {
-          inControl.addQuark(q[index], callback);
+        start = () => {
+          this.addQuark(q[index], callback);
         };
       })(start, nextCallback);
     }
@@ -2171,7 +2155,7 @@ class Hadron {
   }
 
   // create a quark
-  addQuark(say, posted, reply, live) {
+  addQuark(say, posted, reply, live) {    
     reply = typeof(reply) !== "undefined" ? reply : "";
     live = typeof(live) !== "undefined" ? live : true; // quark that are not "live" are not animated and displayed differently
     var animationTime = live ? this.animationTime : 0;
@@ -2179,8 +2163,11 @@ class Hadron {
     var unadorned = false;
     var replyClass = "";
 
-    // create quark element
+    if (!say) {
+      return
+    }
 
+    // create quark element
     if (this.isUndefined(say.unadorned) == false) {
       unadorned = say.unadorned;
       say = say.message;
@@ -2220,7 +2207,7 @@ class Hadron {
 
         for (var i = 0; i < quarkButtons.length; i++) {
           ;(function(el) {
-            if (inControl.hideButtonsWhenClicked) {
+            if (this.hideButtonsWhenClicked) {
               $(el).addClass("quark-hide-clicked-button");
               $('.quark-button-wrap').hide();
               //el.style.width = 0 + "px";
@@ -2312,11 +2299,12 @@ class Hadron {
 
        var scrollQuarks = () => {
          for (var i = 1; i <= scrollDifference / scrollHop; i++) {
+           var self = this
            ;(function() {
              setTimeout(() => {
-               if ((inControl.quarkWrap[0].scrollHeight - inControl.quarkWrap[0].scrollTop) > containerHeight) {
-                 var sTop = inControl.quarkWrap[0].scrollTop + scrollHop;
-                 inControl.quarkWrap[0].scrollTop = sTop;
+               if ((self.quarkWrap[0].scrollHeight - self.quarkWrap[0].scrollTop) > containerHeight) {
+                 var sTop = self.quarkWrap[0].scrollTop + scrollHop;
+                 self.quarkWrap[0].scrollTop = sTop;
                }
              }, i * 5);
            })();
@@ -2377,7 +2365,6 @@ class Hadron {
     }
   }
 }
-
 
 // jQuery toast plugin created by Kamran Ahmed copyright MIT license 2015
 if ( typeof Object.create !== 'function' ) {
@@ -2750,7 +2737,6 @@ if ( typeof Object.create !== 'function' ) {
     };
 
 })( jQuery, window, document );
-
 
 var inControl;
 window.inControl = inControl = new Hadron("inControl", ".hadron-button");
