@@ -4,7 +4,6 @@ const utils = require('./utils')
 const config = require('../config')
 const webpack = require('webpack')
 const chalk = require('chalk')
-const ModernizrWebpackPlugin = require('modernizr-webpack-plugin');
 
 
 /*if (!process.env.BOTANIC_ENV) {
@@ -12,6 +11,7 @@ const ModernizrWebpackPlugin = require('modernizr-webpack-plugin');
     process.exit(1);
 }
 */
+
 
 function resolve(dir) {
     return path.join(__dirname, '..', dir)
@@ -46,6 +46,7 @@ module.exports = {
         alias: {
             'vue$': 'vue/dist/vue.esm.js',
             '@': resolve('src'),
+            modernizr$: path.resolve(__dirname, "../.modernizrrc")
         }
     },
     module: {
@@ -83,7 +84,12 @@ module.exports = {
             {
                 test: /\.scss$/,
                 use: [{loader: "css-loader"}, {loader: "sass-loader"}]
-            }
+            },
+            {
+                test: /\.modernizrrc(\.json)?$/,
+                use: [ 'modernizr-loader', 'json-loader' ]
+      }
+
         ]
     },
 

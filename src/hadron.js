@@ -25,7 +25,7 @@ import {HadronStorage} from './hadron.storage.js';
 import {HadronAvatar} from './hadron.avatar.js';
 import {HadronActr} from './hadron.actr.js';
 
-import * as Modernizr from './lib/modernizr.js'
+import * as Modernizr from 'modernizr'
 
 
 const Config = {
