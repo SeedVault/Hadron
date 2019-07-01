@@ -20,7 +20,7 @@ import {HadronStorage} from './hadron.storage.js';
 
 import './assets/css/launcher.css';
 
-//These should be in hadron.js but dynamically imported js is not loading them
+//This should be in hadron.js but dynamically imported js is not loading them
 import './assets/css/input.css';
 import './assets/css/reply.css';
 import './assets/css/says.css';

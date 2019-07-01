@@ -1,4 +1,5 @@
 'use strict'
+const path = require('path')
 const utils = require('./utils')
 const webpack = require('webpack')
 const config = require('../config')
@@ -8,6 +9,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
 const portfinder = require('portfinder')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+
 
 const HOST = process.env.HOST
 const PORT = process.env.PORT && Number(process.env.PORT)
@@ -57,6 +60,15 @@ const devWebpackConfig = merge(baseWebpackConfig, {
             inject: true
         }),
         new ExtractTextPlugin("styles.css"),
+
+        // copy custom static assets
+        new CopyWebpackPlugin([
+        {
+            from: path.resolve(__dirname, '../src/assets/images'),
+            to: 'assets/images/'/*config.build.assetsSubDirectory*/,
+            ignore: ['.*']
+        }
+        ])
     ]
 });
 
