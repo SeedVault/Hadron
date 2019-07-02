@@ -11,10 +11,42 @@ Hadron is a presentation wrapper for deploying bots in a container that can be i
 
 ### Install Hadron
 ```
-npm install webpack webpack-cli copy-webpack-plugin uglifyjs-webpack-plugin style-loader css-loader file-loader exports-loader imports-loader --save-dev
-npx webpack
+npm install
 ```
-Get started with looking at the functionality available to you: open `dist/avatar.html`.
+
+### Run development instance (hotloading enabled)
+
+This will open a browser with Hadron calling bot id 5d1627422047fc0006614969 on url http://localhost:5000/restful_channel:
+
+```
+BBOT_ID=5d1627422047fc0006614969 BBOT_URL=http://localhost:5000/restful_channel npm run dev
+```
+
+### Load Hadron (online production build) 
+```
+    <span class="hadron-button quark"
+        data-bot-show-debug="true"
+        data-bot-uses-3d-avatar="false"
+        data-bot-size-class="fullscreen"
+        data-bot-placeholder=""
+        data-bot-talks-first="true"
+        data-bot-welcome="Hi!"
+        data-bot-reset-on-load="true"
+        data-bot-subtitle=""
+        data-bot-recall-interactions="false"
+        data-bot-title="Avataracious BETA"
+        data-bot-voice-recognition-visible="true"
+        data-bot-voice-recognition-continuous="true"        
+        data-bot-load-font="Montserrat:300,400,600"        
+        data-bot-external-css=""
+        data-bot-launcher-external-css="s"
+        data-bot-track-anonymous-user-id="false"
+        data-bot-bbot-uri="http://domain:port/restful_channel"
+        data-bot-id="5d132a422057fc0076714969"
+    ></span>        
+    <script type="text/javascript" src="app.bundle.js"></script>
+
+```
 
 ### Live Demo of Hadron (SEED Bot)
 Hadron has been implemented as a FAQ Bot on the [Seed Token website](https://seedtoken.io) and on Telegram (search for @seedtokenbot)

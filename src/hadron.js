@@ -5,7 +5,7 @@
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
-/*
+
 import './assets/css/input.css';
 import './assets/css/reply.css';
 import './assets/css/says.css';
@@ -14,7 +14,7 @@ import './assets/css/sprites.css';
 import './assets/css/typing.css';
 
 import './assets/css/jquery.toast.css';
-*/
+
 
 import Artyom from 'artyom.js';
 
@@ -150,7 +150,8 @@ class Hadron {
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
-      this.userId             = this.getControlData("bot-userid", this.getAnonymousUserId());
+      this.trackAnonymousUserId = this.getControlData("bot-track-anonymous-user-id", false, "bool");
+      this.userId             = this.getControlData("bot-userid", this.getAnonymousUserId(this.trackAnonymousUserId));    
       this.botId              = this.getControlData("bot-id", Config.botId);
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
@@ -229,8 +230,20 @@ class Hadron {
   	}
         
     //Returns a new anonymous user id
-    getAnonymousUserId() {
-        return 'hadron_anon_' + this.botId + '_' + this.s4() + this.s4();        
+    getAnonymousUserId(trackAnon) {console.log("TRACK ANON: ", trackAnon)
+      let userId      
+      if (trackAnon) {
+        userId = this.hadronStorage.getItem('anonymousUserId')        
+      }
+
+      if (!userId) {
+        userId = 'hadron_anon_' + this.botId + '_' + this.s4() + this.s4();        
+      }
+
+      if (trackAnon) {
+        this.hadronStorage.setItem('anonymousUserId', userId)        
+      }
+      return userId
     }
     
     //Returns an alphanumeric random string
@@ -610,7 +623,7 @@ class Hadron {
               this.clearToken();
             }
             
-            responseText = this.callBBot("solongfarewellaufwiedersehen", (botSaid, cards) => {console.log(this)
+            responseText = this.callBBot("solongfarewellaufwiedersehen", (botSaid, cards) => {
               setTimeout(() => {
                 this.textAreaEnabled(true); //JEMHERE
               }, this.firstVolleyPause);

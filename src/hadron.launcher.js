@@ -14,21 +14,10 @@ const Config = {
   bbot_id                        : ""
 };
 
+import './assets/css/launcher.css';
 
 // Load the storage facade
 import {HadronStorage} from './hadron.storage.js';
-
-import './assets/css/launcher.css';
-
-//This should be in hadron.js but dynamically imported js is not loading them
-import './assets/css/input.css';
-import './assets/css/reply.css';
-import './assets/css/says.css';
-import './assets/css/setup.css';
-import './assets/css/sprites.css';
-import './assets/css/typing.css';
-
-import './assets/css/jquery.toast.css';
 
 // Bare style, bare interactions.  Click to grow.
 // Create iframe
