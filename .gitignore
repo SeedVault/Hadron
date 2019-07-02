@@ -1,9 +1,3 @@
 nbproject/
-builds/
-noship/
 dist/
-src/config.beta.js
-src/config.botonebbot.js
-src/config.sequoia.js
-webpack.config.js
 node_modules/
