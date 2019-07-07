@@ -19,6 +19,7 @@
   "homepage": "https://github.com/SeedVault/Hadron#readme",
   "dependencies": {
     "artyom.js": "^1.0.6",
+    "copy-webpack-plugin": "^5.0.3",
     "jquery": "^3.4.1",
     "three": "^0.106.2"
   },
