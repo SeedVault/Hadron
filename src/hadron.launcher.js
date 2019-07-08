@@ -292,7 +292,7 @@ class HadronLauncher {
       if (this.launcherExternalCSS.indexOf('https://') === 0) {
         this.appendCSS(this.launcherExternalCSS);
       } else {
-        this.consoleLog("Ignored user stylesheet, did not begin with https://");
+        console.log("Ignored user stylesheet, did not begin with https://");
       }
     }
   }
