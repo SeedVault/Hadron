@@ -88,7 +88,7 @@ class Hadron {
       this.fullyLoaded = false;
       this.stopCommand = "stop listening";
       this.userDictation = false;
-      this.ttsURIToCall = "";
+      this.ttsURIToCall = null;
 
       this.debugCommands = ["!!caps", "!!state", "!!config", "!!actr", "!!3js"];
 
@@ -290,7 +290,7 @@ class Hadron {
       // If the server isn't secure, don't bother enabling voice reco because it won't work.
       if (this.isSecure == false) {
         this.recoVisible = false;
-        this.ttsVisible = false;
+        //this.ttsVisible = false;
       }
 
       if (this.hasSpeechSynthesis == false) {
@@ -861,7 +861,7 @@ class Hadron {
           if (this.soundObject) {
             this.soundObject.muted = false;
           } else {
-            this.playAudio(Config.all_your_bases_are_belong_to_us + '500-milliseconds-of-silence.mp3');
+            this.playAudio('/assets/audio/500-milliseconds-of-silence.mp3');
           }
 
           this.context.resume().then(() => {
@@ -1445,12 +1445,12 @@ class Hadron {
 
     // Do not reset the tts var is actr is running, it needs it.
     if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
-      this.ttsURIToCall = "";
+      this.ttsURIToCall = null;
     }
 
     // Do not speak if actr is running, it will do it.
     if (this.ttsURIToCall && this.isACTRRunning() == false) {
-      this.handleTTS(this.ttsURIToCall);
+      this.handleTTS(this.ttsURIToCall, null, null, 500);
     }
 
     //convo = { ice: { says: [botWelcomeText], reply: [] } }
@@ -1751,40 +1751,20 @@ class Hadron {
   }
 
   // Make a call to BBot to do the TTS.  Could also speak locally in some cases but this allows for a custom voice.
-  handleTTS(uri, startCallback, endCallback) {
-    if (uri == false) {
+  handleTTS(url, startCallback, endCallback, delay) {
+    if (url == false || this.ttsEnabled == false) {
       if (startCallback) {
         startCallback();
       }
-
       return;
     }
 
-    if (this.ttsEnabled == false) {
-      if (startCallback) {
-        startCallback();
-      }
+    this.stopReco();
 
-      return;
-    }
+    setTimeout(() => {
+      this.playAudio(url, startCallback, endCallback);
+    }, delay || 0)
 
-    this.lastSpokenURI = uri;
-
-    $.ajax({url: uri,
-        type: 'get',
-        dataType: 'JSON',
-        context: this,
-        success: function(result){
-          var sound_uri = result.response.data[0].audio_uri || false;
-
-          this.consoleLog(result.response.data);
-
-          if (sound_uri != false) {
-            this.stopReco();
-            this.playAudio(sound_uri, startCallback, endCallback);
-          }
-        }
-    });
   }
 
 
@@ -1812,11 +1792,11 @@ class Hadron {
 
     // This forces the audio to wait until it is fully loaded to play, helps with bad networks.
     this.soundObject.preload = true;
-    this.soundObject.addEventListener('canplaythrough', () => {
-      if (startCallback) {
-        startCallback();
-      }
-    }, false);
+    if (startCallback) {    
+      //we need to call the callback this way in order to be able to 
+      //properly remove the event later
+      this.soundObject.addEventListener('canplaythrough', startCallback)      
+    }
     this.soundObject.src = url;
 
 
@@ -1899,7 +1879,9 @@ class Hadron {
     var req_params = {
         'orgId': 1,
         'botId': this.botId,
-        'userId': this.userId,        
+        'userId': this.userId,   
+        'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
+        'ttsTimeScale': ttsTimeScale,     
         'input': {
             'text': text
         }
@@ -1923,7 +1905,11 @@ class Hadron {
             this.tokenSave(json_obj.token);
           }
 
-          this.ttsURIToCall = json_obj.tts || false;
+          if (response.tts) {
+            this.ttsURIToCall = response.tts.url 
+          } else {
+            this.ttsURIToCall = null
+          }
 
           if (this.ttsEnabled == true) {
             // If we are in mediaView we do NOT use TTS. Eventually should be only if the media is video but for now.
