@@ -5,9 +5,24 @@ These files are made available to you on an as-is and restricted basis, and may 
 Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
-// send color codes for background via avatarDefinition
-// research point fogs
+import * as THREE from 'three';
+import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { SepiaShader } from 'three/examples/jsm/shaders/SepiaShader.js';
+import { VignetteShader } from 'three/examples/jsm/shaders/VignetteShader.js';
+var FiddleOutlineShader, CustomBitShader, CustomGrayScaleShader, CustomOutlineShader, OutlineShader, CustomDrawShader //Custom Botanic shaders will be loaded later
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass.js';
+import { HalftonePass } from 'three/examples/jsm/postprocessing/HalftonePass.js';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 
+import * as dat from 'dat.gui';
 
 import './assets/css/avatar.css';
 
@@ -26,7 +41,7 @@ export class HadronAvatar {
   constructor(self, options) {
     options = typeof(options) !== "undefined" ? options : {};
 
-	this.name = self;
+	  this.name = self;
     this.container = false;
     this.renderer = false;
     this.scene = false;
@@ -56,6 +71,8 @@ export class HadronAvatar {
 
     this.mouthAnimationList = [];
     this.mouthFormat = 'actr1';
+
+    this.meshes = {}
 
     this.mixer = false;
     this.effect = false;
@@ -195,6 +212,15 @@ export class HadronAvatar {
 
     this.container = inControl.mediaView(true);
 
+    import('./lib/BotanicToonShaders.js').then((m) => {//we need to load dynamically here because CustomDrawShader needs this.container to get some size values
+      FiddleOutlineShader = m.FiddleOutlineShader
+      CustomBitShader = m.CustomBitShader
+      CustomGrayScaleShader = m.CustomGrayScaleShader
+      CustomOutlineShader = m.CustomOutlineShader
+      OutlineShader = m.OutlineShader
+      CustomDrawShader = m.CustomDrawShader
+    })
+
     if (this.threeJSPresent == false) {
       this.sid = $('<section>', {id: 'loading-screen'});
       var slid = $('<div>', {id: 'loader'});
@@ -202,11 +228,9 @@ export class HadronAvatar {
       this.sid.append(slid);
 
       $('.quark-media-overlay').append(this.sid);
-
-      loadThreeJS(() => {
-        this.threeJSPresent = true;
-        this.startAvatar2();
-      });
+      
+      this.startAvatar2();
+      
     } else {
       this.startAvatar2();
     }
@@ -234,7 +258,7 @@ export class HadronAvatar {
 
     this.container.append(this.renderer.domElement);
 
-    this.composer = new THREE.EffectComposer(this.renderer);
+    this.composer = new EffectComposer(this.renderer);
 
     $(window).resize(() => {
       this.defaultCamera.aspect = this.container.width() / this.container.height();
@@ -344,7 +368,7 @@ export class HadronAvatar {
 
   // Create the orbital controls
   createControls() {
-    this.controls = new THREE.OrbitControls(this.defaultCamera, this.container[0] /* this.renderer.domElement */);
+    this.controls = new OrbitControls(this.defaultCamera, this.container[0] /* this.renderer.domElement */);
 
     this.controls.screenSpacePanning = true;
   }
@@ -701,8 +725,8 @@ export class HadronAvatar {
   // load some avatar.
   // pass path to a remote resource to override the default avatar
   startAvatar2() {
-    if (!Detector.webgl) {
-      Detector.addGetWebGLMessage();
+    if (!this.isWebGLAvailable()) {      
+      inControl.showToast('WebGL not supported!');
     }
 
     // This feels like a config var but can't be since THREE isn't loaded when the config is created.  Must be here.
@@ -712,6 +736,7 @@ export class HadronAvatar {
       this.backfaceMaterial = THREE.FrontSide;
     }
 
+    this.clock = new THREE.Clock();
 
     this.createRenderer();
 
@@ -743,21 +768,21 @@ export class HadronAvatar {
     var loader;
 
     if (this.loaderTargetFormat == "glb") {
-		  loader = new THREE.GLTFLoader();
+		  loader = new GLTFLoader();
     } else {
-      loader = new THREE.FBXLoader();
+      loader = new FBXLoader();
     }
 
     loader.setCrossOrigin('');
 
     // test for https, if not we build a local link like always.
-    var fullPathToTargetModel = Config.all_your_bases_are_belong_to_us + "avatar/models/" + this.loaderTarget;
+    var fullPathToTargetModel = Config.all_your_bases_are_belong_to_us + "assets/avatars/" + this.loaderTarget;
 
     if (this.loaderTarget.includes('https:') || this.loaderTarget.includes('http:')) {
       fullPathToTargetModel = this.loaderTarget;
     }
 
-		loader.load(fullPathToTargetModel, (object) => {
+		loader.load(fullPathToTargetModel, (object) => {console.log(object)
       if (this.loaderTargetFormat == "glb") {
         this.model = object.scene || object.scenes[0];
       } else {
@@ -787,6 +812,9 @@ export class HadronAvatar {
         }
 
   		if (child.isMesh) {
+
+          this.meshes[child.name] = child
+
           child.material.side = this.backfaceMaterial;
           child.material.wireframe = this.showWireframe;
           this.outlineTargets.push(child);
@@ -846,14 +874,23 @@ export class HadronAvatar {
     this.animate();
   }
 
+  isWebGLAvailable() {
+    try {
+            var canvas = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+    } catch (e) {
+            return false;
+    }
+  }
 
   enumerateAnimations() {
     this.animCtrls = [];
+    var al = []
 
     if (this.clips.length) {
       this.animFolder.domElement.style.display = '';
       const actionStates = this.state.actionStates = {};
-      this.clips.forEach((clip, clipIndex) => {
+      this.clips.forEach((clip, clipIndex) => {al.push(clip.name)
         // Autoplay the first clip.
         let action;
         // This forces auto play of first animation, don't want that so set to -1
@@ -880,6 +917,7 @@ export class HadronAvatar {
         });
         this.animCtrls.push(ctrl);
       });
+      console.log(al)
 
       if (this.clips.length > 1 && this.initialAnimation) {
         //jem
@@ -898,7 +936,7 @@ export class HadronAvatar {
 
 
   createGlitch() {
-    this.glitchPass = new THREE.GlitchPass();
+    this.glitchPass = new GlitchPass();
     this.glitchPass.enabled = this.options.useGlitch;
     this.composer.addPass( this.glitchPass );
 
@@ -907,12 +945,12 @@ export class HadronAvatar {
 
 
   createBitShader() {
-    this.grayScalePass = new THREE.ShaderPass(THREE.CustomGrayScaleShader);
+    this.grayScalePass = new ShaderPass(CustomGrayScaleShader);
     this.grayScalePass.enabled = false;
 
     this.composer.addPass(this.grayScalePass);
 
-    this.bitPass = new THREE.ShaderPass(THREE.CustomBitShader);
+    this.bitPass = new ShaderPass(CustomBitShader);
     this.bitPass.enabled = this.options.useBits;
 
     this.bitPass.uniforms.bitSize.value = 3.0;
@@ -925,9 +963,9 @@ export class HadronAvatar {
   createFiddleShader() {
     if (this.useFiddleShader) {
       let outlineMaterial = new THREE.ShaderMaterial({
-        uniforms: THREE.FiddleOutlineShader.uniforms,
-        vertexShader: THREE.FiddleOutlineShader.vertexShader,
-        fragmentShader: THREE.FiddleOutlineShader.fragmentShader,
+        uniforms: FiddleOutlineShader.uniforms,
+        vertexShader: FiddleOutlineShader.vertexShader,
+        fragmentShader: FiddleOutlineShader.fragmentShader,
         side: THREE.FrontSide,
         blending: THREE.AdditiveBlending,
         transparent: true
@@ -940,7 +978,7 @@ export class HadronAvatar {
 
 
   createOutlinePass() {
-    this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(this.container.width(), this.container.height()), this.scene, this.defaultCamera);
+    this.outlinePass = new OutlinePass(new THREE.Vector2(this.container.width(), this.container.height()), this.scene, this.defaultCamera);
     this.outlinePass.edgeStrength = 10;
     this.outlinePass.edgeGlow = 0.0;
     this.outlinePass.edgeThickness = 1.0;
@@ -967,7 +1005,7 @@ export class HadronAvatar {
 
 
   createOutlineShader1() {
-    this.shaderPass = new THREE.ShaderPass(THREE.CustomOutlineShader);
+    this.shaderPass = new ShaderPass(CustomOutlineShader);
     this.shaderPass.enabled = true;
 
     this.composer.addPass(this.shaderPass);
@@ -975,18 +1013,18 @@ export class HadronAvatar {
 
 
   createOutlineEffect() {
-    this.outlineEffect = new THREE.OutlineEffect( this.renderer /* , {defaultThickness: 0.1, defaultColor: new THREE.Color( 0x444444 ), defaultAlpha: 1, defaultKeepAlive: true} */);
-    this.outlineEffectPass = new THREE.ShaderPass(this.outlineEffect);
+    this.outlineEffect = new OutlineEffect( this.renderer /* , {defaultThickness: 0.1, defaultColor: new THREE.Color( 0x444444 ), defaultAlpha: 1, defaultKeepAlive: true} */);
+    this.outlineEffectPass = new ShaderPass(this.outlineEffect);
     this.composer.addPass(this.outlineEffectPass);
   }
 
 
   createOutlineShaderToy() {
-    this.drawShader = new THREE.ShaderPass(CustomDrawShader);
+    this.drawShader = new ShaderPass(CustomDrawShader);
     this.composer.addPass(this.drawShader);
 
 
-    this.finalDrawShader = new THREE.ShaderPass(CustomFinalDrawShader);
+    this.finalDrawShader = new ShaderPass(CustomFinalDrawShader);
     this.finalDrawShader.material.extensions.derivatives = true;
     this.composer.addPass(this.finalDrawShader);
   }
@@ -995,10 +1033,10 @@ export class HadronAvatar {
   createOutline() {
     this.outlinePass = false;
 
-    this.outlineEffect = new THREE.ShaderPass(THREE.OutlineShader);
+    this.outlineEffect = new ShaderPass(OutlineShader);
     this.composer.addPass(this.outlineEffect);
 
-    this.copyPass = new THREE.ShaderPass(THREE.CopyShader);
+    this.copyPass = new ShaderPass(CopyShader);
     this.composer.addPass(this.copyPass);
 
     return 1;
@@ -1006,7 +1044,7 @@ export class HadronAvatar {
 
 
   createVignette() {
-    this.vignettePass = new THREE.ShaderPass(THREE.VignetteShader);
+    this.vignettePass = new ShaderPass(VignetteShader);
     this.vignettePass.enabled = this.options.useVignette;
 
     this.composer.addPass(this.vignettePass);
@@ -1015,7 +1053,7 @@ export class HadronAvatar {
 
 
   createSepia() {
-    this.sepiaPass = new THREE.ShaderPass(THREE.SepiaShader);
+    this.sepiaPass = new ShaderPass(SepiaShader);
     this.sepiaPass.uniforms.amount.value = 0.9;
     this.sepiaPass.enabled = this.options.useSepia;
 
@@ -1038,7 +1076,7 @@ export class HadronAvatar {
 			disable: false
 		};
 
-    this.halftonePass = new THREE.HalftonePass( this.container.width(), this.container.height(), params );
+    this.halftonePass = new HalftonePass( this.container.width(), this.container.height(), params );
     this.halftonePass.enabled = this.options.useHalftone;
 	  this.composer.addPass( this.halftonePass );
 
@@ -1047,7 +1085,7 @@ export class HadronAvatar {
 
 
   createFXAA() {
-    this.effectFXAA = new THREE.ShaderPass( THREE.FXAAShader );
+    this.effectFXAA = new ShaderPass( FXAAShader );
     this.effectFXAA.uniforms[ 'resolution' ].value.set( 1 / this.container.width(), 1 / this.container.height());
     this.effectFXAA.renderToScreen = true;
     this.effectFXAA.needsSwap = true;
@@ -1056,7 +1094,7 @@ export class HadronAvatar {
 
 
   createEffects() {
-    this.renderPass = new THREE.RenderPass(this.scene, this.defaultCamera);
+    this.renderPass = new RenderPass(this.scene, this.defaultCamera);
     this.composer.addPass(this.renderPass);
 
     this.composer.renderTarget1.stencilBuffer = true;
@@ -1126,7 +1164,7 @@ export class HadronAvatar {
         this.acknowledgeAnimationAction.reset();
       }
 
-      if (this.initialAnimationAction) {
+      /*if (this.initialAnimationAction) {
         this.initialAnimationAction.play();
 
         setTimeout(() => {
@@ -1136,7 +1174,7 @@ export class HadronAvatar {
           }
         }, 150);
       }
-
+*/
 
     }
   }
@@ -1162,25 +1200,30 @@ export class HadronAvatar {
 
 
   animate(time) {
-    //setTimeout( function() {
-    requestAnimationFrame(window.inAvatar.animate);
+    setTimeout( function() {
+      requestAnimationFrame(window.inAvatar.animate);
 
-    const dt = (time - window.inAvatar.prevTime) / 1000;
+      //const dt = (time - window.inAvatar.prevTime) / 1000;
+      var delta = window.inAvatar.clock.getDelta()
 
-    window.inAvatar.controls.update();
+      window.inAvatar.controls.update();
 
-    if (window.inAvatar.showStats) {
-      window.inAvatar.stats.update();
-    }
+      if (window.inAvatar.showStats) {
+        window.inAvatar.stats.update();
+      }
 
-    if (window.inAvatar.mixer != false) {
-      window.inAvatar.mixer.update(dt);
-    }
+      if (window.inAvatar.mixer != false) {
+        window.inAvatar.mixer.update(delta);
+      }
 
-    window.inAvatar.render();
+       if( window.inAvatar.mouthMixer) {                           
+          window.inAvatar.mouthMixer.update(delta);        
+      }
 
-    window.inAvatar.prevTime = time;
-    //}, 1000 / 46 );
+      window.inAvatar.render();
+
+      //window.inAvatar.prevTime = time;
+    }, 1000 / 15 );
   }
 
 
@@ -1468,76 +1511,149 @@ export class HadronAvatar {
 
 
   // Process actr commands
-  processACTR(ACTRdata) {
-    if (ACTRdata == false) {
+  processACTR(visemes) {
+    if (visemes == false || visemes.length == 0) {
       return;
     }
-
-    if (ACTRdata.length == 0) {
-      return;
-    }
-
-    ACTRdata = this.onlyMouthAnimations(ACTRdata);
-
-    this.detectMouthFormat();
-
-    if (this.mouthFormat == 'actr2') {
-      this.mouthStyle = 'middling';
-    }
-
-    if (this.mouthStyle == 'accurate') {
-      this.parseMouthAccurate(ACTRdata, () => {
-        this.speakNow();
-      });
-    } else if (this.mouthStyle == 'toon') {
-      this.parseMouthToon(ACTRdata, () => {
-        this.speakNow();
-      });
-    } else if (this.mouthStyle == 'middling') {
-      this.parseMouthMiddling(ACTRdata, () => {
-        this.speakNow();
-      });
-    } else {
-      console.log("Unhandled mouthStyle: " + this.mouthStyle + " used 'toon' instead.");
-
-      this.parseMouthToon(ACTRdata, () => {
-        this.speakNow();
-      });
-    }
+    this.speakNow(visemes['visemes']);    
   }
 
 
-  speakNow() {
+  speakNow(visemes) {
+    console.log(visemes)
     // Find a pause rate to sync these up.
     if (inControl.ttsURIToCall) {
       inControl.handleTTS(inControl.ttsURIToCall, () => {
         // Start Callback
         setTimeout(() => {
-          this.avatarState('paused');
+          //this.avatarState('paused');          
 
-          this.currentAnimationAction = false;
-          this.nextAnimationAction = false;
-          this.totalTickTock = 0;
-          this.lastAnimationName = "";
-          this.runAnimationList();
+          //start mouth visemes
+          this.playMouthVisemes(visemes)
+
         }, window.inAvatar.options.speechDelay);
       },
       () => {
       // End callback
-        if (this.currentAnimationAction) {
-          this.currentAnimationAction.stopFading();
-          this.currentAnimationAction.reset();
-          this.currentAnimationAction.stop();
-
-          // Clear the list to try to end the loop, for slowed animations.
-          this.mouthAnimationList = [];
-
-          this.avatarState('waiting');
+        
+          //this.avatarState('waiting');
         }
-      });
+      );
     }
   }
 
+
+  playMouthVisemes(visemes) {
+    setTimeout(() => {
+      console.log(visemes)      
+      
+      let currViseme, nextViseme, prevViseme, morphT1, morphT2, animations, prevDuration, mouthMixer, setDuration, setDuration2
+      prevDuration = 0
+      animations = []
+        
+      this.mouthMixer = new THREE.AnimationMixer(this.meshes['head_geo']);				                 
+
+      for (var i = 0; i < visemes.length; i++) { 
+          currViseme = visemes[i]
+          morphT1 = this.getMorphTarget(this.avatarType, currViseme.value)
+          
+          if (i == visemes.length - 1) {
+            break
+          } else {
+            nextViseme = visemes[i + 1]
+          }
+          morphT2 = this.getMorphTarget(this.avatarType, nextViseme.value)
+
+          if (i > 0) {
+            prevViseme = visemes[i - 1]
+          } else {
+            prevViseme = {viseme: 'sil', duration:0}
+          }
+
+          var mt = [morphT1, morphT2]
+          console.log(mt)
+          var animName = currViseme.value + '_' + nextViseme.value
+          var sequence = THREE.AnimationClip.CreateFromMorphTargetSequence(animName, mt, 24, true);
+          var animation = this.mouthMixer.clipAction(sequence);
+          animation.setLoop(THREE.LoopOnce)
+          var duration = nextViseme.duration
+          
+          setDuration = duration / 1000 /*/ (100 / this.options.transitionDelayScale)*/
+          animation.clampWhenFinished = false
+          /*if (nextViseme.value == 'sil') {
+            //lets make it fast transition to silence
+            setDuration = 0.3
+          }*/
+          animation.setDuration(setDuration)
+          animation.startAt(prevDuration / 1000)
+          animation.weight = 1
+
+          animations.push(animation)
+          console.log("Queued animation from " + currViseme.value + " to " + nextViseme.value + " - duration " + setDuration + " - startAt: " + prevDuration / 1000)
+
+          prevDuration += duration
+
+      }
+      
+      animations.forEach((a) => {              
+          a.play()
+      })
+
+          
+        }, window.inAvatar.options.speechDelay)
+        
+  }
+
+  getMorphTarget(avatarType, visemes) {
+    console.log('trying to find viseme morphtarget for viseme ' + visemes)
+    return this.getMorphTargetForJackie(visemes)
+  }
+  
+  /**
+   * polly   jackie viseme blendshape    phoneme                     example word
+    a       0                           ah                          Adapt, marshA    
+    a       1                           aa                          Odd, adAh                
+    O       2                           ao                          scOre, OUght     
+    o       3                           aw ow                       OAts, cOW        
+    u       4                           oy uh uw                    tWO              
+    @       5                           eh ae                       tEd, cAt
+    i       6                           ih ay                       hIt, hIde                
+    e       7                           ey                          ATE, gATE
+    i       8                           y iy                        Yes, Yum, EAt    
+    r       9                           r er                        Ranger
+    t       10                          l                           Loud, unLoad
+    u       11                          w                           Would unWind     
+    p       12                          m p b                       Me, Be, Pee
+    s       13                          nn n dh d g t z zh th k s   Zee, Sea        
+    S       14                          ch j sh                     CHeese, Gee, seiZure, SHe
+    f       15                          f v                         Vee, Fee
+    sil     16                          x                           silence
+        
+        https://docs.aws.amazon.com/polly/latest/dg/ph-table-english-us.html
+
+   */
+  getMorphTargetForJackie(viseme) {
+    var map = {
+      'p': 12,
+      't': 10,
+      'S': 14,
+      'T': 13, // ?
+      'f': 15,
+      'k': 13, // ?
+      'i': 8,
+      'r': 9,
+      's': 13,
+      'u': 11,
+      '@': 5,
+      'a': 0,
+      'e': 7,
+      'E': 7, // ?
+      'o': 3,
+      'O': 2,
+      'sil': 16
+    }
+    return this.meshes['head_geo'].geometry.morphAttributes.position[map[viseme]]
+  }
 
   runAnimationList() {
     var animationTarget;
@@ -1727,17 +1843,7 @@ export class HadronAvatar {
       avatarDefinition.cubeExtension = 'jpg';
 
       avatarDefinition.renderAs = 'pbr';
-    } else if (param == "10") {
-      avatarDefinition.loaderTarget = "em10_mouth_iconics.glb";
-      avatarDefinition.showGroundPlane = false;
-      avatarDefinition.useCubeMap = false;
-      avatarDefinition.cubeName = 'toon';
-      avatarDefinition.cubeExtension = 'jpg';
-      avatarDefinition.initialAnimation = 'em10_d13000_head';
-      avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000';
-//      avatarDefinition.acknowledgeAnimation = 'em10_d2000_body';
-
-      avatarDefinition.renderAs = 'toon';
+    
     } else if (param == "11") {
       avatarDefinition.loaderTarget = "forever_and_ever.glb";
       avatarDefinition.showGroundPlane = false;
@@ -1758,26 +1864,7 @@ export class HadronAvatar {
       avatarDefinition.backfaceMaterial = "THREE.DoubleSide";
 
       avatarDefinition.renderAs = 'pbr';
-    } else if (param == "14") {
-      avatarDefinition.loaderTarget = "em10_mouth_iconics.glb";
-      avatarDefinition.showGroundPlane = false;
-      avatarDefinition.useCubeMap = false;
-      avatarDefinition.cubeName = 'toon';
-      avatarDefinition.cubeExtension = 'jpg';
-      avatarDefinition.initialAnimation = 'em10_d13000_head';
-      avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000';
-      avatarDefinition.renderAs = 'toon';
-      avatarDefinition.showWireframe = true;
-    } else if (param == "15") {
-      avatarDefinition.loaderTarget = "https://raw.githubusercontent.com/b-ran-don/Hadron/master/em10_mouth_iconics.glb";
-      avatarDefinition.showGroundPlane = false;
-      avatarDefinition.useCubeMap = false;
-      avatarDefinition.cubeName = 'toon';
-      avatarDefinition.cubeExtension = 'jpg';
-      avatarDefinition.initialAnimation = 'em10_d13000_head';
-      avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000';
-      avatarDefinition.renderAs = 'toon';
-      avatarDefinition.showWireframe = false;
+    
     } else if (param == "16") {
       avatarDefinition.loaderTarget = "sprout_avatar.glb";
       avatarDefinition.showGroundPlane = false;
@@ -1785,7 +1872,28 @@ export class HadronAvatar {
       avatarDefinition.cubeName = 'skybox';
       avatarDefinition.cubeExtension = 'jpg';
 
+      avatarDefinition.renderAs = 'pbr';    
+    } else if (param == "17") {
+      avatarDefinition.loaderTarget = "jackie_fixed_short/em10_mouth_iconics_short.gltf";
+      avatarDefinition.showGroundPlane = false;
+      avatarDefinition.useCubeMap = false;
+      avatarDefinition.cubeName = 'jackie17';
+      avatarDefinition.cubeExtension = 'jpg';
+      avatarDefinition.initialAnimation = 'em10_d13000_head';
+      //avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000_body';
       avatarDefinition.renderAs = 'pbr';
+      avatarDefinition.showWireframe = false;    
+    } else if (param == "18") {
+      avatarDefinition.loaderTarget = "jackie_fixed_short/em10_mouth_iconics_short.gltf";
+      avatarDefinition.showGroundPlane = false;
+      avatarDefinition.useCubeMap = false;
+      avatarDefinition.cubeName = 'jackie17';
+      avatarDefinition.cubeExtension = 'jpg';
+      avatarDefinition.initialAnimation = 'em10_d13000_head';
+      //avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000_body';
+      avatarDefinition.renderAs = 'toon';
+      avatarDefinition.showWireframe = false;
+    
     } else {
       avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
     }
@@ -1796,97 +1904,3 @@ export class HadronAvatar {
   }
 }
 
-
-// First pass
-function loadThreeJS(callback) {
-  var scripts = [
-    Config.all_your_bases_are_belong_to_us + 'three.js',
-
-    Config.all_your_bases_are_belong_to_us + 'dat.gui.min.js',
-
-    Config.all_your_bases_are_belong_to_us + 'EffectComposer.js',
-    Config.all_your_bases_are_belong_to_us + 'RenderPass.js',
-    Config.all_your_bases_are_belong_to_us + 'MaskPass.js',
-    Config.all_your_bases_are_belong_to_us + 'ShaderPass.js',
-
-    Config.all_your_bases_are_belong_to_us + 'DigitalGlitch.js',
-    Config.all_your_bases_are_belong_to_us + 'GlitchPass.js',
-
-//    Config.all_your_bases_are_belong_to_us + 'CurveExtras.js',
-
-    Config.all_your_bases_are_belong_to_us + 'HalftoneShader.js',
-    Config.all_your_bases_are_belong_to_us + 'HalftonePass.js',
-
-    Config.all_your_bases_are_belong_to_us + 'OrbitControls.js',
-    Config.all_your_bases_are_belong_to_us + 'Detector.js',
-    Config.all_your_bases_are_belong_to_us + 'OutlineEffect.js',
-    Config.all_your_bases_are_belong_to_us + 'CopyShader.js',
-
-    Config.all_your_bases_are_belong_to_us + 'VignetteShader.js',
-    Config.all_your_bases_are_belong_to_us + 'ToonShader.js',
-    Config.all_your_bases_are_belong_to_us + 'SepiaShader.js',
-    Config.all_your_bases_are_belong_to_us + 'FXAAShader.js',
-
-    Config.all_your_bases_are_belong_to_us + 'OutlinePass.js',
-    Config.all_your_bases_are_belong_to_us + 'ShaderToon.js',
-
-    Config.all_your_bases_are_belong_to_us + 'SobelOperatorShader.js',
-
-    Config.all_your_bases_are_belong_to_us + 'GLTFLoader.js',
-    Config.all_your_bases_are_belong_to_us + 'FBXLoader.js',
-    Config.all_your_bases_are_belong_to_us + 'inflate.min.js',
-    Config.all_your_bases_are_belong_to_us + 'stats.min.js',
-  ];
-  var src;
-  var script;
-  var pendingScripts = [];
-  var firstScript = document.scripts[0];
-
-  // Watch scripts load in IE
-  function stateChange() {
-    // Execute as many scripts in order as we can
-    var pendingScript;
-    while (pendingScripts[0] && pendingScripts[0].readyState == 'loaded') {
-      pendingScript = pendingScripts.shift();
-      // avoid future loading events from this script (eg, if src changes)
-      pendingScript.onreadystatechange = null;
-      // can't just appendChild, old IE bug if element isn't closed
-      firstScript.parentNode.insertBefore(pendingScript, firstScript);
-    }
-  }
-
-  // loop through our script urls
-  var head = document.getElementsByTagName("head")[0];
-  var scriptLoadCount = scripts.length;
-
-  head.addEventListener("load", function(event) {
-      if (event.target.nodeName === "SCRIPT") {
-        scriptLoadCount--;
-
-        if (scriptLoadCount == 0) {
-          callback();
-        }
-      }
-  }, true);
-
-  while (src = scripts.shift()) {
-    if ('async' in firstScript) { // modern browsers
-      script = document.createElement('script');
-      script.async = false;
-      script.src = src;
-      document.head.appendChild(script);
-    } else if (firstScript.readyState) { // IE<10
-      // create a script and add it to our todo pile
-      script = document.createElement('script');
-      pendingScripts.push(script);
-      // listen for state changes
-      script.onreadystatechange = stateChange;
-      // must set src AFTER adding onreadystatechange listener
-      // else we’ll miss the loaded event for cached scripts
-      script.src = src;
-    }
-    else { // fall back to defer
-      document.write('<script src="' + src + '" defer></'+'script>');
-    }
-  }
-}

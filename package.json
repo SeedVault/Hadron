@@ -19,6 +19,7 @@
   "homepage": "https://github.com/SeedVault/Hadron#readme",
   "dependencies": {
     "artyom.js": "^1.0.6",
+    "dat.gui": "^0.7.6",
     "jquery": "^3.4.1",
     "three": "^0.106.2"
   },

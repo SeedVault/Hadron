@@ -22,8 +22,8 @@ import Artyom from 'artyom.js';
 import {HadronStorage} from './hadron.storage.js';
 
 // Load Avatar support
-import {HadronAvatar} from './hadron.avatar.js';
-import {HadronActr} from './hadron.actr.js';
+//import {HadronAvatar} from './hadron.avatar.js';
+//import {HadronActr} from './hadron.actr.js';
 
 import * as Modernizr from 'modernizr'
 
@@ -936,7 +936,7 @@ class Hadron {
             return;
           }
 
-          this.avatarState('acknowledge');
+          //this.avatarState('acknowledge');
 
           // call BBot after a slight delay.  BBot can answer so quickly that it breaks behavior.
           // var userSaid = this.inputText.val();
@@ -1103,10 +1103,14 @@ class Hadron {
         }
 
         if (window.inAvatar == false) {
-          window.inAvatar = new HadronAvatar("inAvatar");
+          import(/* webpackChunkName: "hadronavatar" */ './hadron.avatar.js').then((avatar) => {            
+            window.inAvatar = new avatar.HadronAvatar("inAvatar");
+            console.log(param)
+            window.inAvatar.checkACTRInput(param);
+          })//.catch(error => 'An error occurred while loading the component');          
         }
 
-        return window.inAvatar.checkACTRInput(param);
+        return true        
 
       } else if (userSaid == "!!stopactr") {
         window.inAvatar.stopAvatar();
@@ -1443,16 +1447,6 @@ class Hadron {
       }
     }
 
-    // Do not reset the tts var is actr is running, it needs it.
-    if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
-      this.ttsURIToCall = null;
-    }
-
-    // Do not speak if actr is running, it will do it.
-    if (this.ttsURIToCall && this.isACTRRunning() == false) {
-      this.handleTTS(this.ttsURIToCall, null, null, 500);
-    }
-
     //convo = { ice: { says: [botWelcomeText], reply: [] } }
     var conv = { ice: { says: messages, reply: buttons.reverse() } };
     this.talk(conv);
@@ -1785,52 +1779,60 @@ class Hadron {
     this.showConfigState();
     this.pauseAudio();
 
-    if (this.soundObject == false) {
-      this.soundObject = new Audio();
-      this.soundObject.muted = true;
-    }
+  
+    //this method allows to have total control of events
+    var req = new XMLHttpRequest();
+    //req.withCredentials = true;
+    req.crossDomain = true
+    req.open('GET', url, true);
+    req.responseType = 'blob';
+    
+    req.onload = function() {
+      console.log('audio loaded with status ' + this.status )
+       // Onload is triggered even on 404
+       // so we need to check the status code
+      if (this.status === 200) {
+          var audioSrc = URL.createObjectURL(this.response); // IE10+
+          // Video is now downloaded
+          // and we can set it as source on the video element
+          this.soundObject = new Audio();
 
-    // This forces the audio to wait until it is fully loaded to play, helps with bad networks.
-    this.soundObject.preload = true;
-    if (startCallback) {    
-      //we need to call the callback this way in order to be able to 
-      //properly remove the event later
-      this.soundObject.addEventListener('canplaythrough', startCallback)      
-    }
-    this.soundObject.src = url;
+          // If it was off, keep it off!
+          // If there is a pause, no voice detected for a few seconds, turn off all reco.
+          // If the user clicks the stop, it stops.
+          // If the user says "stop listening" or something similar, it stops.
+          this.soundObject.onended = () => {
+            if (endCallback) {
+              console.log('playAudio() endCallback')
+              endCallback();
+            }
 
+            if (inControl.returnToReco == true) {
+              setTimeout(function(){
+                inControl.startReco(false);
+              }, 200);
+            }
+          };
 
-    // If it was off, keep it off!
-    // If there is a pause, no voice detected for a few seconds, turn off all reco.
-    // If the user clicks the stop, it stops.
-    // If the user says "stop listening" or something similar, it stops.
-    this.soundObject.onended = () => {
-      if (endCallback) {
-        endCallback();
+          this.soundObject.src = audioSrc;
+          console.log('playing audio')
+          this.soundObject.play()
+
+          if (startCallback) {
+            startCallback()
+          }
       }
-
-      if (this.returnToReco == true) {
-        setTimeout(function(){
-          this.startReco(false);
-        }, 200);
-      }
-    };
-
-    var playPromise = this.soundObject.play();
-
-    // In browsers that don’t yet support this functionality,
-    // playPromise won’t be defined.
-    if (playPromise !== undefined) {
-      playPromise.then(() => {
-        // Automatic playback started!
-      }).catch((error) => {
-        this.changeTTSState(false);
-        this.showToastDebug(error);
-        this.showToastDebug('Please press the speaker icon to let this bot speak');
-      });
     }
+    
+    req.onerror = (e) => {
+        console.log('error on audio playing')
+        console.log(e)
 
-    this.consoleLog(url);
+    }
+    
+    req.send();
+    console.log('start load audio')
+
   }
 
 
@@ -1851,29 +1853,16 @@ class Hadron {
 
     // Reset this variable each time so TTS can work when it was appropriate.
     this.lastSpokenURI = false;
-/*
-    this.token = this.tokenRead();
 
-    // Try to standardize any token value that could have been saved or read.
-    if (this.token == false || this.token == "" || this.isUndefined(this.token) == true) {
-      this.tokenSave(this.token);
-    }
-
-    uri = this.BBotBaseUrl + "social/chatbot/?service=chatbot_router&uid=" + this.botId + "&type=text&handler=" + this.botHandler + "&text=" + encodeURIComponent(text) + "&user_data_json=" + encodeURI(this.botUserData);
-    if (this.token !== "") {
-      uri += "&token=" + this.token;
-    }
-
-    if (this.rootFlowUUID !== "") {
-      uri += "&user_data=" + this.rootFlowUUID;
-    }
-  */  
     //hardcode to test bbot
     var ttsTimeScale;
+    var voiceId;
     if (this.isACTRRunning()) {
       ttsTimeScale = window.inAvatar.options.ttsTimeScale
+      voiceId = window.inAvatar.voiceId
     } else {
       ttsTimeScale = 100
+      voiceId = 7
     }
 
     var req_params = {
@@ -1881,6 +1870,7 @@ class Hadron {
         'botId': this.botId,
         'userId': this.userId,   
         'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
+        'actrEnabled': this.isACTRRunning(),         
         'ttsTimeScale': ttsTimeScale,     
         'input': {
             'text': text
@@ -1900,32 +1890,30 @@ class Hadron {
         success: function(response){
             
           var json_obj = this.processBbotResponse(response);
-            
-          if (this.isUndefined(json_obj.token) == false) {
-            this.tokenSave(json_obj.token);
-          }
 
           if (response.tts) {
             this.ttsURIToCall = response.tts.url 
-          } else {
-            this.ttsURIToCall = null
-          }
-
-          if (this.ttsEnabled == true) {
-            // If we are in mediaView we do NOT use TTS. Eventually should be only if the media is video but for now.
-            if (this.useLocalTTS == false) {
-              this.consoleLog(this.ttsURIToCall);
-            } else {
-              this.localTTS(json_obj.bot_said || "");
-            }
-          }
-
+          } 
+         
           if (this.isACTRRunning() == true) {
-            window.inAvatar.processACTR(json_obj.actr || false);
+            window.inAvatar.processACTR(response.actr || false);
             window.inAvatar.processMessages(json_obj.messages || false);
           }
 
-          this.processSentiment(json_obj.sentimentValue);
+           
+           if (this.ttsEnabled == true && this.useLocalTTS == true) {
+              this.localTTS(json_obj.bot_said || "");
+          }
+
+          // Do not reset the tts var is actr is running, it needs it.
+          if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
+            this.ttsURIToCall = null;
+          }
+
+          // Do not speak if actr is running, it will do it.
+          if (this.ttsURIToCall && this.isACTRRunning() == false) {
+            this.handleTTS(this.ttsURIToCall, null, null, 500);
+          }
 
           this.processResponse(json_obj.messages, json_obj.cards, response);
 
@@ -1934,6 +1922,7 @@ class Hadron {
   }
 
     //convert legacy protocol to bbot protocol
+    
     processBbotResponse(bbot_response) {          
         console.log("bbot response");
         console.log(bbot_response);

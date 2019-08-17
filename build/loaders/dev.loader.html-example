@@ -9,7 +9,7 @@
     <body>
         <span class="hadron-button quark"
         data-bot-show-debug="true"
-        data-bot-uses-3d-avatar="false"
+        data-bot-uses-3d-avatar="true"
         data-bot-size-class="fullscreen"
         data-bot-placeholder=""
         data-bot-talks-first="true"

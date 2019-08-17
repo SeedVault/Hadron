@@ -63,15 +63,10 @@ module.exports = {
             //@TODO this shouldn't be needed. FIX
             new CopyWebpackPlugin([
                 {
-                    from: path.resolve(__dirname, '../src/assets/images'),
-                    to: 'assets/images/',
+                    from: path.resolve(__dirname, '../src/assets'),
+                    to: 'assets',
                     ignore: ['.*']
-                },
-		{
-    		    from: path.resolve(__dirname, '../src/assets/audio'),
-    		    to: 'assets/audio',
-    		    ignore: ['.*']
-		}
+                }
             ])
     ],
     output: {
