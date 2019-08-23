@@ -49,6 +49,8 @@ export class HadronAvatar {
     this.defaultCamera = false;
     this.threeJSPresent = false;
 
+    this.fps = 15
+
     this.groundPlanePosition = 0;
     this.groundPlaneImage = "grass.png";
     this.showGroundPlane = true;
@@ -193,6 +195,13 @@ export class HadronAvatar {
     this.initialAnimation = avatarDefinition.initialAnimation || false;
     this.acknowledgeAnimation = avatarDefinition.acknowledgeAnimation || false;
 
+    this.avatarAnimations = avatarDefinition.avatarAnimations || []
+
+    this.avatarDefaultCameraPositionX = avatarDefinition.defaultCameraPositionX
+    this.avatarDefaultCameraPositionY = avatarDefinition.defaultCameraPositionY
+    this.avatarDefaultCameraPositionZ = avatarDefinition.defaultCameraPositionZ
+      
+    
     this.acknowledgeAnimationAction = false;
     this.initialAnimationAction = false;
 
@@ -278,7 +287,7 @@ export class HadronAvatar {
   createCamera() {
     // Camera
     var fov = 0.8 * 180 / Math.PI;
-    this.defaultCamera = new THREE.PerspectiveCamera(fov, this.container.width() / this.container.height(), 0.01, 1000);
+    this.defaultCamera = new THREE.PerspectiveCamera(fov, this.container.width() / this.container.height(), 0.5, 1000);
     this.scene.add( this.defaultCamera );
   }
 
@@ -864,6 +873,9 @@ export class HadronAvatar {
       this.mixer = new THREE.AnimationMixer(this.model);
       this.enumerateAnimations();
 
+
+      this.setDefaultCameraPosition()
+
       this.render();
 		}, undefined, function (e) {
       inControl.consoleLog(e);
@@ -881,6 +893,12 @@ export class HadronAvatar {
     } catch (e) {
             return false;
     }
+  }
+
+  setDefaultCameraPosition() {    
+    if ( this.avatarDefaultCameraPositionX) {
+      this.defaultCamera.position.set(this.avatarDefaultCameraPositionX, this.avatarDefaultCameraPositionY, this.avatarDefaultCameraPositionZ)
+    }   
   }
 
   enumerateAnimations() {
@@ -917,20 +935,25 @@ export class HadronAvatar {
         });
         this.animCtrls.push(ctrl);
       });
-      console.log(al)
 
-      if (this.clips.length > 1 && this.initialAnimation) {
-        //jem
-        var clip = THREE.AnimationClip.findByName(this.clips, this.initialAnimation);
-        if (clip) {
-          this.initialAnimationAction = this.mixer.clipAction(clip);
-
-          this.initialAnimationAction.reset();
-          this.initialAnimationAction.enabled = true;
-          console.log("playing initialAnimation: " + clip.name);
-          this.initialAnimationAction.play();
-        }
+      //initialize animations    
+      this.avatarClipActions = {}
+      for (var avatarStateName in this.avatarAnimations) {
+        var animationClipNames = this.avatarAnimations[avatarStateName]      
+        this.avatarClipActions[avatarStateName] = []
+        animationClipNames.forEach((acn) => {
+          console.log("animationclipname: " + animationClipNames)    
+          console.log("avatarstatename: " + avatarStateName)
+          var clip = THREE.AnimationClip.findByName(this.clips, acn);          
+          var clipAction = this.mixer.clipAction(clip);
+          clipAction.reset();
+          clipAction.enabled = true;
+          this.avatarClipActions[avatarStateName].push(clipAction)
+        })
+        
       }
+
+      this.avatarState('neutral')
     }
   }
 
@@ -1122,61 +1145,96 @@ export class HadronAvatar {
   }
 
 
-  avatarState(state) {
-    this.avatarState == state;
+  
 
-    if (state == 'acknowledge') {
-      if (this.initialAnimationAction) {
-        this.initialAnimationAction.stop();
-        this.initialAnimationAction.reset();
-      }
-
-      if (this.acknowledgeAnimation) {
-        if (this.acknowledgeAnimationAction) {
-          this.acknowledgeAnimationAction.play();
-        } else {
-          var clip = THREE.AnimationClip.findByName(this.clips, this.acknowledgeAnimation);
-          if (clip) {
-            this.acknowledgeAnimationAction = this.mixer.clipAction(clip);
-
-            this.acknowledgeAnimationAction.reset();
-            this.acknowledgeAnimationAction.enabled = true;
-            console.log("playing acknowledgeAnimation: " + clip.name);
-            this.acknowledgeAnimationAction.play();
-          }
+  //returns running clipAnimations 
+  getRunningAnimations() {
+    let running = []    
+    for (var key in this.avatarClipActions) {
+      var cas = this.getClipAnimationsByStateName(key)
+      cas.forEach((ca) => {
+        if (ca.isRunning()) {
+          running.push(ca)
         }
-      }
-    } else if (state == 'waiting') {
-      if (this.acknowledgeAnimationAction) {
-        this.acknowledgeAnimationAction.stop();
-        this.acknowledgeAnimationAction.reset();
-      }
-
-      if (this.initialAnimationAction) {
-        console.log("playing initialAnimation: ");
-        this.initialAnimationAction.play();
-      }
-    } else if (state == 'paused') {
-      console.log('pausing body');
-
-      if (this.acknowledgeAnimationAction) {
-        this.acknowledgeAnimationAction.stop();
-        this.acknowledgeAnimationAction.reset();
-      }
-
-      /*if (this.initialAnimationAction) {
-        this.initialAnimationAction.play();
-
-        setTimeout(() => {
-          if (this.initialAnimationAction) {
-            this.initialAnimationAction.stop();
-            this.initialAnimationAction.reset();
-          }
-        }, 150);
-      }
-*/
-
+      })      
     }
+    return running
+  }
+
+  //crossFade all running animations to the new one  
+  crossFadeToAnimation(animation, duration, exclude) {
+    exclude = exclude || []
+    duration = duration || 0.3
+    let runningAnimations = this.getRunningAnimations()       
+    let animationClipName = animation.getClip().name
+    runningAnimations.forEach((ra) => {
+      var raClipName = ra.getClip().name      
+      //console.log('trying to crossfadefrom ' + raClipName + ' to ' + animationClipName + ' with excludes: ', exclude)
+      if (raClipName != animationClipName && !exclude.includes(raClipName)) {              
+        ra.crossFadeTo(animation, duration, true);
+        //console.log('crossfading!')
+        /*setTimeout(() => {
+          ra.stop()
+        }, duration)
+        */
+      }
+    })
+  }
+
+  fadeOutAllAnimations(excludeList, duration) {
+    excludeList = excludeList || []
+    duration = duration || 0.5
+    let runningAnimations = this.getRunningAnimations()           
+    runningAnimations.forEach((ra) => {
+      var raClipName = ra.getClip().name            
+      //console.log('trying to fadeout ' + raClipName + ' excluding ', excludeList)
+      if (!excludeList.includes(raClipName) && ra.weight != 0) {              
+        ra.fadeOut(duration)
+        //console.log('fading out!')
+      }    
+    })
+  }
+
+  getClipAnimationsByStateName(stateName) {
+    return this.avatarClipActions[stateName]    
+  }
+
+  getAnimationsNameByStateName(state) {
+    return this.avatarAnimations[state]
+  }
+  
+  avatarState(state, duration) {
+    duration = duration || 0.5
+    this.avatarState == state;
+    //console.log('crossfade to: ' + state + ' in ' + duration + ' seconds')
+
+    var cas = this.getClipAnimationsByStateName(state)
+    var animNames = this.getAnimationsNameByStateName(state)
+
+    var runningAnimations = this.getRunningAnimations()           
+    
+      //console.log('will fade to:', animNames)
+      cas.forEach((ca) => {            
+        if (runningAnimations.length) {
+          ca.reset()          
+          ca.play()       
+          ca.fadeOut(0.01)     
+          this.crossFadeToAnimation(ca, duration, animNames) 
+        } else {
+          ca.reset()
+          ca.play()
+        }
+  /*
+        ca.reset()      
+        ca.play()
+        //ca.weight = 0.3
+        ca.setEffectiveTimeScale(1)
+        ca.fadeOut(0.01)      
+        ca.fadeIn(2)      
+        console.log('playing and fadein ' + ca.getClip().name)*/
+      })
+      //this.fadeOutAllAnimations(animNames)
+
   }
 
 
@@ -1203,7 +1261,6 @@ export class HadronAvatar {
     setTimeout( function() {
       requestAnimationFrame(window.inAvatar.animate);
 
-      //const dt = (time - window.inAvatar.prevTime) / 1000;
       var delta = window.inAvatar.clock.getDelta()
 
       window.inAvatar.controls.update();
@@ -1222,47 +1279,13 @@ export class HadronAvatar {
 
       window.inAvatar.render();
 
-      //window.inAvatar.prevTime = time;
-    }, 1000 / 15 );
+    }, 1000 / window.inAvatar.fps );
   }
 
 
   stopAvatar() {
     inControl.mediaView(false);
   }
-
-
-  playAnimation(clip, nextClip, durationSeconds) {
-    if (nextClip) {
-      this.nextAnimationAction = this.mixer.clipAction(nextClip);
-    } else {
-      this.nextAnimationAction = false;
-    }
-
-    this.currentAnimationAction = this.mixer.clipAction(clip);
-
-    if (this.currentAnimationAction) {
-      this.currentAnimationAction.reset();
-      this.currentAnimationAction.enabled = true;
-      this.currentAnimationAction.loop = THREE.LoopOnce;
-      this.currentAnimationAction.setEffectiveTimeScale(this.options.effectiveTimeScale);
-      this.currentAnimationAction.zeroSlopeAtBegin = this.options.zeroSlopeAtBegin;
-      this.currentAnimationAction.zeroSlopeAtEnd = this.options.zeroSlopeAtEnd;
-      console.log("playing clip: " + clip.name);
-      this.currentAnimationAction/*.setDuration(durationSeconds)*/.play();
-    } else {
-      console.log("clip was not found: " + clip.name);
-    }
-
-    if (this.nextAnimationAction) {
-      if (this.options.crossFadeEnabled) {
-        this.currentAnimationAction.crossFadeTo(this.nextAnimationAction, this.options.fadeDuration, true);
-      }
-    } else {
-      this.currentAnimationAction.stopFading();
-    }
-  }
-
 
 
   stringIncludedInList(needle, haystack) {
@@ -1278,214 +1301,7 @@ export class HadronAvatar {
   }
 
 
-  parseMouthAccurate(ACTRdata, callback) {
-    var count = ACTRdata.length;
-
-    this.mouthAnimationList = [];
-
-    ACTRdata.forEach((controlStates) => {
-      var controlGroup = controlStates.control_group;
-
-      var animationTarget = {name: controlGroup, specs: controlStates};
-      this.mouthAnimationList.push(animationTarget);
-
-      count--;
-
-      if (count == 0) {
-        if (callback) {
-          callback();
-        }
-      }
-    });
-  }
-
-
-  parseMouthToon(ACTRdata, callback) {
-    var count = ACTRdata.length;
-
-    this.mouthAnimationList = [];
-
-    this.newState = {};
-    this.newMouth = '';
-
-    ACTRdata.forEach((controlStates) => {
-      var controlGroup = controlStates.control_group;
-
-      // These are all mapped to "mouth_c_500"
-      if (this.stringIncludedInList(controlGroup, ['mouth_a_d500', 'mouth_c_d500', 'mouth_e_d500'])) {
-        controlGroup = this.newMouth = 'mouth_e_d500';
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      } else if (this.stringIncludedInList(controlGroup, ['mouth_u_d500', 'mouth_o_d500'])) {
-        controlGroup = this.newMouth = 'mouth_u_d500';
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      } else if (this.stringIncludedInList(controlGroup, ['mouth_m_d500'])) {
-        controlGroup = this.newMouth = 'mouth_m_d500';
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      } else {
-        controlGroup = this.newMouth = 'mouth_neutral_d500';
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      }
-
-      var animationTarget = {name: controlGroup, specs: controlStates};
-
-      this.mouthAnimationList.push(animationTarget);
-
-      count--;
-
-      if (count == 0) {
-        if (callback) {
-          callback();
-        }
-      }
-    });
-  }
-
-
-  // This is the actr2 version of mouth handling.  New parser so it doesn't affect actr1 versions.
-  parseMouthMiddling(ACTRdata, callback) {
-    var count = ACTRdata.length;
-    var currentInc = 0;
-
-    this.mouthAnimationList = [];
-
-    this.newState = {};
-    this.currentMouth = '';
-    this.newMouth = '';
-    this.viseme = '';
-    this.firstMovementDetected = false;
-    this.ACTRdata = ACTRdata;
-
-    var animationTarget;
-
-    this.ACTRdata.forEach((controlStates) => {
-      var isNeutral = false;
-      var controlGroup = controlStates.control_group;
-
-      var nextState = false;
-      if ((currentInc + 1) < this.ACTRdata.length) {
-        nextState = this.ACTRdata[currentInc + 1];
-      }
-
-      // These are all mapped to "mouth_c_500"
-      if (this.stringIncludedInList(controlGroup, ['mouth_a_d500', 'mouth_c_d500', 'mouth_e_d500'])) {
-        controlGroup = this.newMouth = 'mouth_e_d500';
-        this.viseme = 'e';
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      } else if (this.stringIncludedInList(controlGroup, ['mouth_u_d500', 'mouth_o_d500'])) {
-        controlGroup = this.newMouth = 'mouth_u_d500';
-        this.viseme = 'u';
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      } else if (this.stringIncludedInList(controlGroup, ['mouth_m_d500'])) {
-        this.viseme = 'm';
-
-        controlGroup = this.newMouth;
-
-        controlStates.control_group = this.newMouth;
-        controlStates.control_group_human_readable = this.newMouth;
-      }
-
-      // override the var is the neutral was first. No sense in doubling up neutral.
-      if (controlGroup.includes('mouth_neutral') == true && this.firstMovementDetected == false) {
-        this.firstMovementDetected = true;
-      }
-
-      // Needs an initial transition value
-      if (this.firstMovementDetected == false) {
-        this.firstMovementDetected = true;
-        isNeutral = true;
-
-        var neutralState = jQuery.extend(true, {}, controlStates);
-
-        var neutralName = 'mouth_neutral_d500_transitionTo' + this.viseme.toUpperCase();
-        neutralState.settings.duration = 250;
-        neutralState.control_group = neutralState.control_group_human_readable = neutralName;
-
-        animationTarget = {name: neutralName, specs: neutralState, repeat: THREE.LoopOnce};
-        console.log('transition: ' + neutralName);
-        console.log(neutralState);
-
-        this.mouthAnimationList.push(animationTarget);
-
-        // Now the first official viseme
-        var animationTarget = {name: controlGroup, specs: controlStates, repeat: THREE.LoopOnce};
-        this.mouthAnimationList.push(animationTarget);
-      } else {
-        var animationTarget = {name: controlGroup, specs: controlStates, repeat: THREE.LoopOnce};
-        this.mouthAnimationList.push(animationTarget);
-      }
-
-      console.log('currentState');
-      console.log(controlStates);
-      console.log('nextState');
-      console.log(nextState);
-
-      count--;
-
-      if (count == 0) {
-        if (callback) {
-          callback();
-        }
-      }
-
-      currentInc++;
-    });
-  }
-
-
-  detectMouthFormat() {
-    var clp;
-
-    // This is actr1 detect.
-    clp = THREE.AnimationClip.findByName(window.inAvatar.clips, "mouth_e_d500");
-
-    if (clp) {
-      this.mouthFormat = 'actr1';
-    }
-
-
-    // This is actr2
-    clp = THREE.AnimationClip.findByName(window.inAvatar.clips, "mouth_e_d500_transitionToO");
-
-    if (clp) {
-      this.mouthFormat = 'actr2';
-    }
-
-
-    console.log("mouthFormat: " + this.mouthFormat);
-  }
-
-
-  // Reduce to just ACTR so things work as expected.
-  onlyMouthAnimations(ACTRdata) {
-    this.onlyMouthAnimationList = [];
-
-    ACTRdata.forEach((innerACTR) => {
-      if (innerACTR.type == 'animation') {
-        innerACTR.control_states.forEach((controlState) => {
-          var controlGroup = controlState.control_group;
-
-          if (controlGroup.includes('mouth_')) {
-            this.onlyMouthAnimationList.push(controlState);
-          }
-        });
-      }
-    });
-
-    return this.onlyMouthAnimationList;
-  }
-
+  
 
   processMessages(messages) {
     if (inControl.use3DTextPanel == true) {
@@ -1526,7 +1342,7 @@ export class HadronAvatar {
       inControl.handleTTS(inControl.ttsURIToCall, () => {
         // Start Callback
         setTimeout(() => {
-          //this.avatarState('paused');          
+          this.avatarState('speaking', 0.5);          
 
           //start mouth visemes
           this.playMouthVisemes(visemes)
@@ -1536,7 +1352,7 @@ export class HadronAvatar {
       () => {
       // End callback
         
-          //this.avatarState('waiting');
+          this.avatarState('neutral', 0.5);
         }
       );
     }
@@ -1545,7 +1361,7 @@ export class HadronAvatar {
 
   playMouthVisemes(visemes) {
     setTimeout(() => {
-      console.log(visemes)      
+      //console.log(visemes)      
       
       let currViseme, nextViseme, prevViseme, morphT1, morphT2, animations, prevDuration, mouthMixer, setDuration, setDuration2
       prevDuration = 0
@@ -1571,9 +1387,9 @@ export class HadronAvatar {
           }
 
           var mt = [morphT1, morphT2]
-          console.log(mt)
+          //console.log(mt)
           var animName = currViseme.value + '_' + nextViseme.value
-          var sequence = THREE.AnimationClip.CreateFromMorphTargetSequence(animName, mt, 24, true);
+          var sequence = THREE.AnimationClip.CreateFromMorphTargetSequence(animName, mt, this.fps, true);
           var animation = this.mouthMixer.clipAction(sequence);
           animation.setLoop(THREE.LoopOnce)
           var duration = nextViseme.duration
@@ -1589,7 +1405,7 @@ export class HadronAvatar {
           animation.weight = 1
 
           animations.push(animation)
-          console.log("Queued animation from " + currViseme.value + " to " + nextViseme.value + " - duration " + setDuration + " - startAt: " + prevDuration / 1000)
+          //console.log("Queued animation from " + currViseme.value + " to " + nextViseme.value + " - duration " + setDuration + " - startAt: " + prevDuration / 1000)
 
           prevDuration += duration
 
@@ -1605,7 +1421,7 @@ export class HadronAvatar {
   }
 
   getMorphTarget(avatarType, visemes) {
-    console.log('trying to find viseme morphtarget for viseme ' + visemes)
+    //console.log('trying to find viseme morphtarget for viseme ' + visemes)
     return this.getMorphTargetForJackie(visemes)
   }
   
@@ -1653,76 +1469,6 @@ export class HadronAvatar {
       'sil': 16
     }
     return this.meshes['head_geo'].geometry.morphAttributes.position[map[viseme]]
-  }
-
-  runAnimationList() {
-    var animationTarget;
-    this.animationChanged = false; // true means they have changed, make sure to animate next clip.  If toon mode is enabled, it is forced to false when they are the same so it keeps the same clip running.
-
-    if (this.mouthAnimationList.length) {
-      animationTarget = this.mouthAnimationList.shift();
-      if (this.mouthStyle == 'toon') {
-        if (this.lastAnimationName != animationTarget.name) {
-          this.animationChanged = true;
-        }
-      } else {
-        this.animationChanged = true;
-      }
-
-      // Store this for the next pass.
-      this.lastAnimationName = animationTarget.name;
-
-      var nextAnimationTarget = false;
-
-      if (this.mouthAnimationList.length) {
-        nextAnimationTarget = this.mouthAnimationList[0];
-      }
-
-      var clp = THREE.AnimationClip.findByName(window.inAvatar.clips, animationTarget.name);
-
-      if (nextAnimationTarget) {
-        var nextClp = THREE.AnimationClip.findByName(window.inAvatar.clips, nextAnimationTarget.name);
-      }
-
-      if (clp) {
-        window.inAvatar.playAnimation(clp, nextClp, animationTarget.specs.settings.duration / (1000 / 1), true);
-
-        this.totalTickTock += animationTarget.specs.settings.duration;
-      }
-
-      setTimeout(() => {
-        if (this.currentAnimationAction) {
-          this.currentAnimationAction.stopFading();
-        }
-
-        if (this.animationChanged == true) {
-          if (this.currentAnimationAction) {
-            this.currentAnimationAction.stop();
-          }
-        } else {
-          console.log("repeated clip: " + this.lastAnimationName);
-        }
-
-        window.inAvatar.runAnimationList();
-      }, animationTarget.specs.settings.duration * this.options.durationScale);
-
-//      window.inAvatar.mixer.addEventListener('finished', (e) => {
-//        console.log('ani done:');
-//        window.inAvatar.startAnimationList();
-//      });
-    } else {
-      console.log('Total animation: ' + this.totalTickTock / 1000);
-
-      if (this.totalTickTock == 0) {
-        inControl.showToast('No ACTR animation available.  Please report this to engineering.');
-      }
-
-      if (this.currentAnimationAction) {
-        this.currentAnimationAction.stopFading();
-        this.currentAnimationAction.reset();
-        this.currentAnimationAction.stop();
-      }
-    }
   }
 
   createRandomCamera() {
@@ -1781,6 +1527,8 @@ export class HadronAvatar {
   checkACTRInput(param) {
     var avatarDefinition = {};
 
+    avatarDefinition.avatarAnimations = []
+
     avatarDefinition.backfaceMaterial = "THREE.FrontSide";
     avatarDefinition.showWireframe = false;
 
@@ -1797,7 +1545,7 @@ export class HadronAvatar {
 
     avatarDefinition.renderAs = 'pbr';
 
-    if (param == "0" || param == "") {
+    if (param == "0") {
       avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
       avatarDefinition.showGroundPlane = false;
       avatarDefinition.useCubeMap = false;
@@ -1873,29 +1621,23 @@ export class HadronAvatar {
       avatarDefinition.cubeExtension = 'jpg';
 
       avatarDefinition.renderAs = 'pbr';    
-    } else if (param == "17") {
-      avatarDefinition.loaderTarget = "jackie_fixed_short/em10_mouth_iconics_short.gltf";
-      avatarDefinition.showGroundPlane = false;
-      avatarDefinition.useCubeMap = false;
-      avatarDefinition.cubeName = 'jackie17';
-      avatarDefinition.cubeExtension = 'jpg';
-      avatarDefinition.initialAnimation = 'em10_d13000_head';
-      //avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000_body';
-      avatarDefinition.renderAs = 'pbr';
-      avatarDefinition.showWireframe = false;    
-    } else if (param == "18") {
-      avatarDefinition.loaderTarget = "jackie_fixed_short/em10_mouth_iconics_short.gltf";
-      avatarDefinition.showGroundPlane = false;
-      avatarDefinition.useCubeMap = false;
-      avatarDefinition.cubeName = 'jackie17';
-      avatarDefinition.cubeExtension = 'jpg';
-      avatarDefinition.initialAnimation = 'em10_d13000_head';
-      //avatarDefinition.acknowledgeAnimation = 'iconic_listeningB_d2000_body';
-      avatarDefinition.renderAs = 'toon';
-      avatarDefinition.showWireframe = false;
     
     } else {
-      avatarDefinition.loaderTarget = "bsTest_RIG_shaders02.glb";
+      avatarDefinition.loaderTarget = "jackie_final_short/em10_mouth_iconics.gltf";
+      avatarDefinition.showGroundPlane = false;
+      avatarDefinition.useCubeMap = false;
+      avatarDefinition.cubeName = 'jackie17';
+      avatarDefinition.cubeExtension = 'jpg';
+      avatarDefinition.renderAs = 'pbr';
+      avatarDefinition.showWireframe = false;
+
+      avatarDefinition.avatarAnimations['neutral'] = ['em10_d13000_head', 'em10_d8000_body']
+      avatarDefinition.avatarAnimations['speaking'] = ['em10_d2000_head', 'em10_d8000_body']
+
+      avatarDefinition.defaultCameraPositionX = 15
+      avatarDefinition.defaultCameraPositionY = 70
+      avatarDefinition.defaultCameraPositionZ = 220
+
     }
 
     this.startAvatar(avatarDefinition);

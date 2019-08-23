@@ -2,3 +2,4 @@ nbproject/
 dist/
 node_modules/
 build/loaders/*.html
+src/assets/avatars/

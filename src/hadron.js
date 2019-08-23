@@ -15,15 +15,10 @@ import './assets/css/typing.css';
 
 import './assets/css/jquery.toast.css';
 
-
 import Artyom from 'artyom.js';
 
 // Load the storage facade
 import {HadronStorage} from './hadron.storage.js';
-
-// Load Avatar support
-//import {HadronAvatar} from './hadron.avatar.js';
-//import {HadronActr} from './hadron.actr.js';
 
 import * as Modernizr from 'modernizr'
 
@@ -35,13 +30,6 @@ const Config = {
   author_tool_domain             : "",
   bbotId                         : ""
 };
-
-
-//onended seems to not work as expected
-
-// If you minimize as the bubble is being built, the text width is messed up and looks awful, very narrow.
-
-//Better way to process video OR disable.  Better = only do the exchange of the link and/or a href entirely but NOT the whole string.
 
 
 window.inAvatar = false;
@@ -86,7 +74,7 @@ class Hadron {
       this.standingAnswer = "ice";
       this.prereqsLoaded = false;
       this.fullyLoaded = false;
-      this.stopCommand = "stop listening";
+      this.stopListeningCommand = "stop listening";
       this.userDictation = false;
       this.ttsURIToCall = null;
 
@@ -126,25 +114,26 @@ class Hadron {
       this.delayBetweenBubbles= this.getControlData("bot-bubble-delay", 10); //100, 250
       this.typeSpeed          = this.getControlData("bot-type-speed", 5); // 1, 10 delay per character, to simulate the machine "typing"
       this.botAMAText         = this.getControlData("bot-placeholder", "Ask me anything...");
-      this.botWelcomeText     = this.getControlData("bot-welcome", "Say Hello or Hi to start chatting");
-      this.rootFlowUUID       = this.getControlData("bot-user-data", "");
+      this.botWelcomeText     = this.getControlData("bot-welcome", "Say Hello or Hi to start chatting");      
       this.chromeless         = this.getControlData("bot-without-chrome", false, "bool");
       this.botAutoOpens       = this.getControlData("bot-auto-opens", false, "bool");
       this.BBotBaseUrl        = this.getControlData("bot-bbot-uri", Config.bbot_base_uri);
       this.botUserData        = this.getControlData("bot-user-data-json", "");
 
-      this.botsFirstMessage   = this.getControlData("bot-first-message", "hi");
+      this.botsFirstMessage   = this.getControlData("bot-first-message", "");
+      this.botsFirstMessageTrigger = this.getControlData("bot-first-message", "hello");
       this.botTalksFirst      = this.getControlData("bot-talks-first", false, "bool");
 
       this.botResetOnLoad     = this.getControlData("bot-reset-on-load", false, "bool");
-      this.botResetClearsToken= this.getControlData("bot-reset-clears-token", true, "bool");
-
+      
       this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
       this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");
 
       this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
       this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", false, "bool");
+      this.stopListeningCommand     = this.getControlData("bot-voice-recognition-stoplistening-command", "");
+      console.log('CONFIG:'+this.stopListeningCommand )
 
       this.use3DAvatar        = this.getControlData("bot-uses-3d-avatar", false, "bool");
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
@@ -188,9 +177,7 @@ class Hadron {
 
       this.storageAvailable   = true;
       this.interactionsLS     = "chat-quark-interactions";
-      this.flowOrNative       = (this.rootFlowUUID != "") ? this.rootFlowUUID : 'native';
-      this.tokenLS            = "chat-quark-token-" + this.flowOrNative + "-" + this.botId + "-" + Config.also_known_as;
-
+      
       if (this.recallInteractions != 0) {
         this.consoleLog('recallInteractions: ' + this.recallInteractions);
 
@@ -199,8 +186,7 @@ class Hadron {
         this.interactionsHistory = {};
       }
 
-      this.sentimentToIcoName  = [ 'sentiment_very_dissatisfied', 'sentiment_very_dissatisfied', 'sentiment_dissatisfied', 'sentiment_dissatisfied', 'sentiment_dissatisfied', 'sentiment_neutral', 'sentiment_satisfied', 'sentiment_satisfied', 'sentiment_satisfied', 'sentiment_very_satisfied', 'sentiment_very_satisfied'];
-
+      
       this.twoTitles          = false;
 
       if (navigator.doNotTrack != 0) {
@@ -216,10 +202,6 @@ class Hadron {
         this.botIcon = Config.all_your_bases_are_belong_to_us + "css/images/" + Config.also_known_as + ".png";
       }
 
-
-      this.testToken(() => {
-      //  this.consoleLog('Token: ' + this.token);
-      });
 
       //this.consoleLog('Config: ');
       //this.consoleLog(Config);
@@ -289,7 +271,7 @@ class Hadron {
     priorityInitialization() {
       // If the server isn't secure, don't bother enabling voice reco because it won't work.
       if (this.isSecure == false) {
-        this.recoVisible = false;
+        //this.recoVisible = false;
         //this.ttsVisible = false;
       }
 
@@ -573,91 +555,24 @@ class Hadron {
       }
     }
 
-    // Tests the token to ensure it is still valid.
-    testToken(callback) {
-      if (this.isUndefined(inControl)) {
-        inControl = this;
-      }
-
-      if (this.tokenChecked == true) {
-        callback();
-        return;
-      }
-
-      this.tokenChecked = true;
-
-      this.token = this.tokenRead();
-
-      if (this.token == "") {
-        callback();
-
-        return;
-      }
-
-      var uri = this.BBotBaseUrl + "auth/gndn/?token=" + this.token;
-
-      $.ajax({url: uri,
-          type: 'get',
-          dataType: 'JSON',
-          context: this,
-          success: function(result){
-            if (result.response.information.code  <= 202) {
-              callback();
-            } else {
-              this.tokenSave("");
-              callback();
-            }
-          }
-      });
-    }
-
     refreshContolInner(userRequested) {
       this.textAreaEnabled(false);
 
       if (this.botTalksFirst == true) {
         setTimeout(() => {
-          var responseText;
-
-          if (userRequested == true || this.botResetOnLoad == true) {
-            if (this.botResetClearsToken) {
-              this.clearToken();
-            }
-            
-            responseText = this.callBBot("solongfarewellaufwiedersehen", (botSaid, cards) => {
+          
+          var firstMessage = this.botsFirstMessage || this.botsFirstMessageTrigger
+          this.callBBot(firstMessage, (botSaid, cards) => {
               setTimeout(() => {
-                this.textAreaEnabled(true); //JEMHERE
+                this.textAreaEnabled(true);
               }, this.firstVolleyPause);
             });
-         } else {
-           responseText = this.callBBot(this.botsFirstMessage, (botSaid, cards) => {
-             setTimeout(() => {
-               this.textAreaEnabled(true); //JEMHERE
-             }, this.firstVolleyPause);
-           });
-         }
+
        }, 1);
-      } else {
-        setTimeout(() => {
-          if (userRequested == true || this.botResetOnLoad == true) {
-            if (this.botResetClearsToken) {
-              this.clearToken();
-            }
 
-            var responseText = this.callBBot("solongfarewellaufwiedersehen", (botSaid, cards) => {
-              //this.talk(false);
-              setTimeout(() => {
-                this.textAreaEnabled(true); //JEMHERE
-              }, this.firstVolleyPause);
-            });
-          } else {
-            this.talk(false);
-            setTimeout(() => {
-              this.textAreaEnabled(true); //JEMHERE
-            }, this.firstVolleyPause);
-          }
-        }, 100);
-      }
+      } 
     }
+
 
     // Reloads the control. Respects botTalksFirst flag
     refreshContol(userRequested) {
@@ -666,19 +581,19 @@ class Hadron {
       this.quarkWrap.html('');
       this.quarkWrap.append(this.quarkTyping);
 
-      this.testToken(() => {
-        var animationDelay = this.animationTime * this.typeSpeed;
-        if (this.doNotTrack) {
-          var convo = { ice: { says: [this.doNotTrackText], reply: [] } };
-          this.talk(convo);
+    
+      var animationDelay = this.animationTime * this.typeSpeed;
+      if (this.doNotTrack) {
+        var convo = { ice: { says: [this.doNotTrackText], reply: [] } };
+        this.talk(convo);
 
-          setTimeout(() => {
-            this.refreshContolInner(userRequested);
-          }, animationDelay);
-        } else {
+        setTimeout(() => {
           this.refreshContolInner(userRequested);
-        }
-      });
+        }, animationDelay);
+      } else {
+        this.refreshContolInner(userRequested);
+      }
+    
     }
 
     // Toggle logging to clean up output
@@ -738,50 +653,7 @@ class Hadron {
       this.consoleLog(this.interactionsHistory);
     }
 
-    // read token from local storage
-    tokenRead() {
-      if (this.storageAvailable == false) {
-        return "";
-      } else {
-        var token = this.hadronStorage.getItem(this.tokenLS) || "";
-
-        console.log("tokenRead: " + token);
-
-        if (token == "undefined") {
-          token = "";
-        }
-
-        if (this.isUndefined(token)) {
-          return "";
-        } else {
-          return token;
-        }
-      }
-    }
-
-    // save the token to local storage
-    tokenSave(token) {
-      console.log("tokenSave: " + token);
-
-      this.token = token;
-
-      if (this.storageAvailable == false) {
-        return;
-      } else {
-        this.hadronStorage.setItem(this.tokenLS, token);
-      }
-    }
-
-
-    // Empty out the token, need to make sure the empty value matches what we expect.  Empty quotes should be OK.
-    clearToken() {
-      console.log('clearToken:');
-      console.log('original token:' + this.token);
-      this.tokenChecked = false;
-      this.tokenSave("");
-    }
-
-
+    
     // Sets the state of the text input.  This prevents user entry if Hadron is not ready.
     textAreaEnabled(state) {
       if (state == true) {
@@ -825,7 +697,7 @@ class Hadron {
         }
 
         recoIcon = $('<img>', {id: 'quark-reco-icon', class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
-        recoIcon.click(function() {
+        recoIcon.click(() => {
           if (this.recoVisible) {
             if ($(this).hasClass('quark-reco-button-on')) {
               // A click absolutely disables reco.
@@ -966,7 +838,7 @@ class Hadron {
   }
 
 
-  changeTTSState(state) {
+  changeTTSState(state) {console.log("tts state >> " +  state)
     this.inputText.focus();
 
     if (this.ttsVisible) {
@@ -1058,8 +930,7 @@ class Hadron {
         msg.push('Also known as: ' + Config.also_known_as);
         msg.push('AYBABTU: '       + Config.all_your_bases_are_belong_to_us);
         msg.push('BBot URI: '      + Config.bbot_base_uri);
-        msg.push('Author Tool: '   + Config.author_tool_domain);
-        msg.push('Key: '           + Config.botId);
+        msg.push('Bot ID: '           + Config.botId);
 
         convo = { ice: { says: msg, reply: [] } };
 
@@ -1125,6 +996,7 @@ class Hadron {
 
   // Start the recognizer
   startReco(showToast) {
+    
     //JEM Need to ensure this isn't necessary.
     //if (this.recoEnabled == false) {
     //  return;
@@ -1167,61 +1039,65 @@ class Hadron {
       this.returnToReco = false;
     }
 
-    if (this.recoEnabled == true) {
-      $('#quark-reco-icon').removeClass('quark-reco-button-off');
-      $('#quark-reco-icon').addClass('quark-reco-button-on');
+  
+    $('#quark-reco-icon').removeClass('quark-reco-button-off');
+    $('#quark-reco-icon').addClass('quark-reco-button-on');
 
-      if (this.recoContinuous == true) {
-        this.returnToReco = true;
-      }
+    
+    this.recoObject.initialize({
+      lang: "en-US",
+      debug: false, // Show what recognizes in the Console
+      listen: true, // Start listening after this
+      speed: 0.9, // Talk a little bit slow
+      mode: "normal", // This parameter is not required as it will be normal by default
+      continuous: true//,
+      //name: "Jarvis"
+    });
 
-      this.recoObject.initialize({
-        lang: "en-US",
-        debug: false, // Show what recognizes in the Console
-        listen: true, // Start listening after this
-        speed: 0.9, // Talk a little bit slow
-        mode: "normal", // This parameter is not required as it will be normal by default
-        continuous: true//,
-        //name: "Jarvis"
-      });
-
-      var settings = {
-        continuous:true, // Don't stop never because i have https connection
-        onResult:function(interimText, temporalText) {
-          var isFinal = false;
-          if (temporalText != "") {
-            isFinal = true;
-          }
-
-          this.consoleLog("interimText: " + interimText);
-          this.consoleLog("temporalText:" + temporalText);
-          this.consoleLog("isFinal:" + isFinal);
-
-          if (!isFinal) {
-            this.inputText.val(interimText);
-          } else {
-            if (this.recoObject != false) {
-              this.recoInput(temporalText);
-            }
-
-            this.stopReco();
-          }
-        },
-        onStart:function(){
-            //console.log("Dictation started by the user");
-        },
-        onEnd:function(){
-            //alert("Dictation stopped by the user");
+    var settings = {
+      continuous:true, // Don't stop never because i have https connection
+      onResult:(interimText, temporalText) => {
+        var isFinal = false;
+        if (temporalText != "") {
+          isFinal = true;
         }
-      };
 
-      this.userDictation = this.recoObject.newDictation(settings);
-      this.userDictation.start();
-    }
+        this.consoleLog("interimText: " + interimText);
+        this.consoleLog("temporalText:" + temporalText);
+        this.consoleLog("isFinal:" + isFinal);
+
+        if (!isFinal) {
+          this.inputText.val(interimText);
+        } else {
+          if (this.recoObject != false) {
+            this.recoInput(temporalText);
+          }
+
+          var wasEnabled = this.recoEnabled
+          this.stopReco();            
+          if (wasEnabled && this.recoContinuous && this.returnToReco) {//stop/start to reset it
+            this.startReco();
+          }
+        }
+      },
+      onStart:function(){
+          //console.log("Dictation started by the user");
+      },
+      onEnd:function(){
+          //alert("Dictation stopped by the user");
+      }
+    };
+
+    this.userDictation = this.recoObject.newDictation(settings);
+    this.userDictation.start();
+    console.log('start listening')
+    console.trace()
+  
   }
 
   // Stop the recognizer.
-  stopReco() {
+  stopReco() {    
+    console.log('stopping listening')
     if (this.recoEnabled == true) {
       $('#quark-reco-icon').removeClass('quark-reco-button-on');
       $('#quark-reco-icon').addClass('quark-reco-button-off');
@@ -1259,6 +1135,7 @@ class Hadron {
       },
       onEnd:function(){
         if (this.returnToReco == true) {
+          console.log('onend listening')
           setTimeout(function(){
             this.startReco(false);
           }, 200);
@@ -1282,7 +1159,7 @@ class Hadron {
 
   // Is it a stop command?
   isStopListeningCommand(phrase) {
-    var areEqual = this.caseInsensitiveCompare(phrase, this.stopCommand);
+    var areEqual = this.caseInsensitiveCompare(phrase, this.stopListeningCommand);
 
     if (areEqual) {
       this.showToast('I am no longer listening.');
@@ -1422,8 +1299,9 @@ class Hadron {
     }
 
     if (botSaid.length == 0) {
-        messageObject = { message: "Odd. The bot was silent.", unadorned: false};
+        messageObject = { message: "", unadorned: false};
         messages.push(messageObject);
+        console.log("Odd. The bot was silent.")
     }
 
     var media = "";
@@ -1471,34 +1349,7 @@ class Hadron {
 
   // Look for a trigger phrase OR fix errors in certain types of data.....
   parseBotResponse(botSaid) {
-    if (botSaid.includes("' blank'")) {
-      botSaid = this.replaceAll(botSaid, "' blank'", "'_blank'");
-    }
-
-    if (botSaid.includes('" blank"')) {
-      botSaid = this.replaceAll(botSaid, '" blank"', '"_blank"');
-    }
-
-    if (botSaid.includes("' top'")) {
-      botSaid = this.replaceAll(botSaid, "' top'", "'_top'");
-    }
-
-    if (botSaid.includes('" top"')) {
-      botSaid = this.replaceAll(botSaid, '" top"', '"_top"');
-    }
-
-    if (botSaid.includes("' self'")) {
-      botSaid = this.replaceAll(botSaid, "' self'", "'_top'");
-    }
-
-    if (botSaid.includes('" self"')) {
-      botSaid = this.replaceAll(botSaid, '" self"', '"_top"');
-    }
-
-    if (botSaid.includes('https://twitter.com/SEED token')) {
-      botSaid = this.replaceAll(botSaid, 'https://twitter.com/SEED token', 'https://twitter.com/SEED_token');
-    }
-
+   
     if (botSaid.includes("HADRONSTARTVOICERECO")) {
       botSaid = botSaid.replace("HADRONSTARTVOICERECO", "");
       this.recoEnabled = true;
@@ -1802,15 +1653,15 @@ class Hadron {
           // If the user clicks the stop, it stops.
           // If the user says "stop listening" or something similar, it stops.
           this.soundObject.onended = () => {
-            if (endCallback) {
-              console.log('playAudio() endCallback')
-              endCallback();
-            }
 
             if (inControl.returnToReco == true) {
               setTimeout(function(){
                 inControl.startReco(false);
               }, 200);
+            }
+            if (endCallback) {
+              console.log('playAudio() endCallback')
+              endCallback();
             }
           };
 
@@ -1820,6 +1671,13 @@ class Hadron {
 
           if (startCallback) {
             startCallback()
+          }
+      } else {
+        console.log('Error on audio playback')
+        if (inControl.returnToReco == true) {
+              setTimeout(function(){
+                inControl.startReco(false);
+              }, 200);
           }
       }
     }
@@ -1924,8 +1782,7 @@ class Hadron {
     //convert legacy protocol to bbot protocol
     
     processBbotResponse(bbot_response) {          
-        console.log("bbot response");
-        console.log(bbot_response);
+        
         var messages = [];
         var cards = [];
         var buttons = [];
@@ -1997,26 +1854,10 @@ class Hadron {
            'messages': messages,
            'cards': [cards],              
         };
-        
-        console.log("converted output");
-        console.log(json_obj);
+                
         return json_obj;
     }
 
-  // Displays sentiment if enabled.
-  processSentiment(sentimentValue) {
-    if (this.showSentiment == true) {
-      var sentimentString = this.sentimentToIcoName[sentimentValue + 5];
-      var sentimentals = $('.quark-sentiment-placeholder');
-
-      if (sentimentals.length > 0) {
-        var sentimentStringToInsert = '<i class="material-icons right-align">' + sentimentString + '</i>';
-        $(sentimentals[0]).removeClass('quark-sentiment-placeholder');
-        $(sentimentals[0]).addClass('quark-sentiment-shown');
-        $(sentimentals[0]).append(sentimentStringToInsert);
-      }
-    }
-  }
 
 
   // Enable/disable media view mode.  In media view mode an overlay holds the media object, is stationary and has a one line element to display the last user test.
@@ -2030,7 +1871,7 @@ class Hadron {
       }
 
       // Disable TTS, it would be bad over a video preso.
-      this.changeTTSState(false);
+      //this.changeTTSState(false);
 
       this.mediaViewPreservedState = this.container;
 
