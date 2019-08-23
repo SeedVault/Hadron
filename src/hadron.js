@@ -736,10 +736,11 @@ class Hadron {
             this.playAudio('/assets/audio/500-milliseconds-of-silence.mp3');
           }
 
+          /*
           this.context.resume().then(() => {
             console.log('Playback resumed successfully');
           });
-
+*/
           if (this.ttsVisible) {
             this.changeTTSState(!this.ttsEnabled);
           }
