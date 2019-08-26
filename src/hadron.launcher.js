@@ -252,23 +252,7 @@ class HadronLauncher {
     var data = this.hadronButton.data();
     data.botIsSecure = this.isSecure;
 
-    var params = jQuery.param( data );
-    //var uri = this.chatWindowURI + "?" + params;
-    var uri = "hadron.html?" + params;
-  /*
-    jQuery('<iframe>', {
-       src: uri,
-       id:  'hadron-iframe',
-       class: 'quark_chat_' + this.sizeClass,
-       frameborder: 0,
-       scrolling: 'no',
-       allowusermedia: true,
-       allow: "microphone *; camera *; geolocation *; autoplay; fullscreen;"
-     }).appendTo('body');
-
-     this.iframeCreated = true;
-     */
-    
+    var params = jQuery.param( data );    
     import(/* webpackChunkName: "hadron" */ './hadron.js').then(() => {
 
     })//.catch(error => 'An error occurred while loading the component');

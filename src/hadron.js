@@ -155,7 +155,7 @@ class Hadron {
       this.isSecure           = this.getControlData("bot-is-secure", false, "bool");
 
       this.hijackRefresh      = this.getControlData("bot-refresh-uri", "");
-      this.showRefresh        = this.getControlData("bot-show-refresh", true, "bool");
+      this.showRefresh        = this.getControlData("bot-show-refresh", false, "bool");
       this.useLocalTTS        = this.getControlData("bot-local-tts", false, "bool");
       this.sizeClass          = this.getControlData("bot-size-class",   "standard");
       this.togglePulses       = this.getControlData("bot-toggle-pulses", true, "bool");
