@@ -8,7 +8,7 @@ function resolve(dir) {
 }
 
 module.exports = {
-  context: path.resolve(__dirname, '../'),
+    context: path.resolve(__dirname, '../'),
     entry: {
         app: './src/hadron.launcher.js'
     },
@@ -31,17 +31,17 @@ module.exports = {
                 test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
                 loader: 'url-loader',                
             },
-           {
-			test: /\.css$/,
-			loaders: [
-				'style-loader',
-				'css-loader',
-			]
-		    },
+            {
+            test: /\.css$/,
+            loaders: [
+                'style-loader',
+                'css-loader',
+            ]
+            },
             {
                 test: /\.modernizrrc(\.json)?$/,
                 use: [ 'modernizr-loader', 'json-loader' ]
-      }
+            }
         ]
     },
     resolve: {
@@ -71,7 +71,7 @@ module.exports = {
     ],
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, '../dist'),
+        path: path.resolve(__dirname, '../dist'),        
     },
     node: {
         // prevent webpack from injecting mocks to Node native modules
