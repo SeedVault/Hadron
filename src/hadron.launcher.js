@@ -42,17 +42,13 @@ class HadronLauncher {
 
     this.botAutoPages        = this.getControlData("bot-auto-open-pages", "");
     this.sizeClass           = this.getControlData("bot-size-class",   "standard");
-    this.toggleClass         = this.getControlData("bot-toggle-class", "botanic-green");
+    this.toggleClass         = this.getControlData("bot-toggle-class", "");
     this.toggleIcon          = this.getControlData("bot-toggle-icon",  "chat_bubble_outline");
     this.needsMetaTag        = this.getControlData("bot-add-metatag",  true, "bool");
     this.launcherExternalCSS = this.getControlData("bot-launcher-external-css", "");
     this.togglePulses        = this.getControlData("bot-toggle-pulses", true, "bool");
     this.botAutoOpens        = this.getControlData("bot-auto-opens", false, "bool");
     this.botRemembersState   = this.getControlData("bot-remembers-state", true, "bool");
-
-    //console.log("this.botAutoPages: " + this.botAutoPages);
-    //console.log("this:");
-    //console.log(this);
 
     this.getStylesheet();
     this.checkForHTTPS();
@@ -142,10 +138,10 @@ class HadronLauncher {
       }
 
       this.hadronButton.hide();
-      this.hadronButton.after('<a id="hadron-toggle-1" class="btn-floating btn-large ' + pulse + this.toggleClass + ' hadron-toggle">' + this.chatBubbleSVG + '</a>');
+      this.hadronButton.after('<a id="hadron-toggle-1" class="' + pulse + this.toggleClass + ' hadron-toggle">' + this.chatBubbleSVG + '</a>');
 
-      jQuery("#hadron-toggle-1").click((el) => {
-        if (this.fullyLoaded == false) {
+      jQuery("#hadron-toggle-1").click((el) => {console.log('launch click')
+        if (this.iframeCreated == false) {
           this.regLookUp(() => {
             if (this.botRemembersState) {
               this.setOpenState(true);
@@ -153,11 +149,12 @@ class HadronLauncher {
             this.openChatWindow();
           });
         } else {
+          jQuery("#hadron").show();
           jQuery("#hadron-toggle-1").hide();
 
-          if (this.chrome != false) {
+          /*if (this.chrome != false) {
             this.chrome.hide();
-          }
+          }*/
         }
       });
     }
@@ -233,7 +230,7 @@ class HadronLauncher {
   setOpenState(value) {
     this.hadronStorage.setItem('hadronOpenState', value);
 
-    //console.log('setOpenState(' + value + ')');
+    console.log('setOpenState(' + value + ')');
   }
 
   // Sets the state to false
@@ -244,8 +241,7 @@ class HadronLauncher {
   // Open the iframe, do the magical stuff and pass data in.
   initializeChatWindow() {
     if (this.iframeCreated == true) {
-      jQuery("#hadron-iframe").show();
-
+      jQuery("#hadron").show();      
       return;
     }
 
@@ -254,7 +250,7 @@ class HadronLauncher {
 
     var params = jQuery.param( data );    
     import(/* webpackChunkName: "hadron" */ './hadron.js').then(() => {
-
+      this.iframeCreated = true
     })//.catch(error => 'An error occurred while loading the component');
     
   }
@@ -282,34 +278,5 @@ class HadronLauncher {
   }
 }
 
-var inToggle;
-
-if (window.jQuery) {
-  inToggle = new HadronLauncher("inToggle", ".hadron-button");
-} else {
-  (function() {
-      // Load the script
-      var script = document.createElement("SCRIPT");
-      script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js';
-      script.type = 'text/javascript';
-      script.onload = function() {
-        inToggle = new HadronLauncher("inToggle", ".hadron-button");
-      };
-      document.getElementsByTagName("head")[0].appendChild(script);
-  })();
-}
-
-window.onload = function() {
-  function receiveMessage(e) {
-    if (e.data == "MinimizeIframe") {
-      if (inToggle.botRemembersState) {
-        inToggle.setOpenState(false);
-      }
-
-      jQuery("#hadron-iframe").hide();
-      jQuery("#hadron-toggle-1").show();
-    }
-  }
-
-  window.addEventListener('message', receiveMessage);
-};
+var inToggle
+window.inToggle = inToggle = new HadronLauncher("inToggle", ".hadron-button");

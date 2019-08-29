@@ -132,8 +132,7 @@ class Hadron {
       this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
       this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", false, "bool");
-      this.stopListeningCommand     = this.getControlData("bot-voice-recognition-stoplistening-command", "");
-      console.log('CONFIG:'+this.stopListeningCommand )
+      this.stopListeningCommand     = this.getControlData("bot-voice-recognition-stoplistening-command", "");      
 
       this.use3DAvatar        = this.getControlData("bot-uses-3d-avatar", false, "bool");
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
@@ -475,11 +474,19 @@ class Hadron {
 
         if (this.chrome != false) {
           this.conversationArea.append(this.container);
-          this.hadronButton.after(this.chrome);
+          var frame = $('<div>', {id: 'hadron', class: 'quark_chat_' + this.sizeClass})
+          frame.append(this.chrome)
+          this.hadronButton.after(frame);
 
           this.collapseButton = $("#hadron-toggle-2");
           this.collapseButton.click(() => {
-            parent.postMessage("MinimizeIframe", "*");
+
+            if (window.inToggle.botRemembersState) {
+              window.inToggle.setOpenState(false);
+            }
+
+            jQuery("#hadron").hide();
+            jQuery("#hadron-toggle-1").show();
           });
 
           if (this.showRefresh == true) {
@@ -518,7 +525,7 @@ class Hadron {
           this.chrome.fadeTo(0.25, 1.0);
         }
 
-        this.fullyLoaded = true;
+        parent.fullyLoaded = true;
 
         // This may be a bad idea. This isn't firing, it isn't correct JEM
         //$(this.quarkWrap).on( "DOMMouseScroll", function( event ) {

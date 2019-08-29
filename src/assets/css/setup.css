@@ -155,7 +155,7 @@ a.botanic-button {
 }
 
 .quark-content-overlay {
-    position: fixed;
+    /*position: fixed;*/
     top: 0px;
     left: 0px;
     width: 100%;
@@ -242,7 +242,7 @@ a.botanic-button {
 }
 
 .quark-content-toggle {
-   position: fixed;
+   /*position: fixed;*/
    bottom: 30px;
    right: 30px;
    height: 50px;
@@ -303,9 +303,10 @@ a.botanic-button {
 #quark-conversation-area {
     width: auto;
     max-width: 100%;
-    max-height: calc(100vh - 127px);
-    height: calc(100vh - 127px);
-    overflow: auto;
+    height: 400px;
+    /*max-height: calc(100vh - 150px);*/
+    /*height: calc(100vh - 150px);*/
+    /*overflow: auto;*/
     padding: 5px 5px 5px 5px;
     margin: 0px;
     border: none;

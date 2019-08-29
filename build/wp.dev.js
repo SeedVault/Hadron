@@ -13,7 +13,7 @@ module.exports = merge(common, {
   plugins: [
       new HtmlWebpackPlugin({
       filename: path.resolve(__dirname, '../dist/index.html'),
-      template: 'build/loaders/' + (process.env.BBOT_HTML_LOADER || 'dev.loader.html'),
+      template: 'build/loaders/' + (process.env.HADRON_DEV_HTML_LOADER || 'dev.loader.html'),
       favicon: 'src/assets/images/logo.png',
       inject: true,
       templateParameters: { 
