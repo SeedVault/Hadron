@@ -21,11 +21,6 @@ module.exports = merge(common, {
           bbotUrl: process.env.BBOT_URL || 'http://localhost:5000/restful_channel', 
           bbotId: process.env.BBOT_ID
       }      
-    }),
-    new HtmlWebpackPlugin({
-      filename: path.resolve(__dirname, '../dist/hadron.app.html'),
-      template: 'build/hadron.app.html',                        
-      chunks: ['hadron']
-    }),
+    }),    
   ]
 });

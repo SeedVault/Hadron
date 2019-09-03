@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 function resolve(dir) {
     return path.join(__dirname, '..', dir)
@@ -68,7 +69,12 @@ module.exports = {
                     to: 'assets',
                     ignore: ['.*']
                 }
-            ])
+            ]),
+            new HtmlWebpackPlugin({
+                filename: path.resolve(__dirname, '../dist/hadron.app.html'),
+                template: 'build/hadron.app.html',                        
+                chunks: ['hadron']
+                }),
     ],
     output: {
         filename: '[name].bundle.js',
