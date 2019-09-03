@@ -6,11 +6,11 @@
 /* launcher styles */
 
 .botanic-green {
-  background-color: #45C282
+  background-color: #45C282 !important;
 }
 
 .botanic-silver {
-  background-color: #F5F5F5
+  background-color: #F5F5F5 !important;
 }
 
 #hadron-toggle-1 svg {
@@ -49,31 +49,30 @@
   animation-delay: .66s;
 }
 
-#hadron {
+.hadron-iframe {
   z-index: 8000;
   position: fixed;
   right: 20px;
   bottom: 20px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, .25);
-  border: 1px solid rgba(128, 128, 128, 0.5);
+
 }
 
-#hadron.quark_chat_standard {
+.quark_chat_standard {
   width: 360px;
   height: 500px;
 }
 
-#hadron.quark_chat_tall {
+.quark_chat_tall {
   width: 360px;
   height: calc(100% - 2 * 20px);
 }
 
-#hadron.quark_chat_fullscreen {
+.quark_chat_fullscreen {
   width: calc(100% - 2 * 20px);
   height: calc(100% - 2 * 20px);
 }
 
-#hadron.quark_chat_fullestscreen {
+.quark_chat_fullestscreen {
   width: calc(100%);
   height: calc(100%);
   right: 0 !important;
@@ -96,7 +95,7 @@
 }
 
 @media only screen and (min-width : 320px) and (max-width : 480px), screen and (min-width : 320px) and (max-width : 736px) and  (orientation: landscape)   {
-    #hadron {
+    .hadron-iframe {
         position: fixed;
         right: 0px;
         bottom: inherit;

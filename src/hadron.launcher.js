@@ -18,6 +18,8 @@ import './assets/css/launcher.css';
 
 // Load the storage facade
 import {HadronStorage} from './hadron.storage.js';
+import zoid from 'zoid'
+import { destroyElement, toCSS } from 'belter';
 
 // Bare style, bare interactions.  Click to grow.
 // Create iframe
@@ -54,6 +56,8 @@ class HadronLauncher {
     this.checkForHTTPS();
     this.addMetaTag();
 
+
+    //this.initializeChatWindow();
     this.showChatToggle();
   }
 
@@ -139,7 +143,7 @@ class HadronLauncher {
 
       this.hadronButton.hide();
       this.hadronButton.after('<a id="hadron-toggle-1" class="' + pulse + this.toggleClass + ' hadron-toggle">' + this.chatBubbleSVG + '</a>');
-
+      
       jQuery("#hadron-toggle-1").click((el) => {console.log('launch click')
         if (this.iframeCreated == false) {
           this.regLookUp(() => {
@@ -149,7 +153,7 @@ class HadronLauncher {
             this.openChatWindow();
           });
         } else {
-          jQuery("#hadron").show();
+          jQuery(".hadron-iframe").show();
           jQuery("#hadron-toggle-1").hide();
 
           /*if (this.chrome != false) {
@@ -229,7 +233,6 @@ class HadronLauncher {
   // Sets the state
   setOpenState(value) {
     this.hadronStorage.setItem('hadronOpenState', value);
-
     console.log('setOpenState(' + value + ')');
   }
 
@@ -241,18 +244,102 @@ class HadronLauncher {
   // Open the iframe, do the magical stuff and pass data in.
   initializeChatWindow() {
     if (this.iframeCreated == true) {
-      jQuery("#hadron").show();      
+      jQuery(".hadron-iframe").show();      
       return;
     }
 
     var data = this.hadronButton.data();
     data.botIsSecure = this.isSecure;
 
-    var params = jQuery.param( data );    
-    import(/* webpackChunkName: "hadron" */ './hadron.js').then(() => {
-      this.iframeCreated = true
-    })//.catch(error => 'An error occurred while loading the component');
+    var hadronLauncherIframe = zoid.create({
+    tag: 'hadron-iframe-handler', // This has to be unique per js loaded on the page
+    url: 'hadron.app.html',
     
+    containerTemplate: ({ uid, frame, prerenderFrame, doc, props, event, dimensions : { width, height } }) => {
+        const CLASS = {
+          VISIBLE:   'visible',
+          INVISIBLE: 'invisible'
+        };
+        let div = doc.createElement('div');        
+        div.setAttribute('id', uid);
+        
+        const style = doc.createElement('style');
+        if (props.cspNonce) {
+            style.setAttribute('nonce', props.cspNonce);
+        }
+        style.appendChild(doc.createTextNode(`
+            #${ uid } {              
+            }
+            #${ uid } > iframe {                    
+                transition: opacity .2s ease-in-out;
+            }
+            #${ uid } > iframe.${ CLASS.INVISIBLE } {
+                opacity: 0;
+            }
+            #${ uid } > iframe.${ CLASS.VISIBLE } {
+                opacity: 1;
+        }
+        `));
+
+        frame.setAttribute('class', 'hadron-iframe quark_chat_' + this.sizeClass);
+        frame.setAttribute('frameborder', 0)
+        frame.setAttribute('scrolling', 'no')
+        frame.setAttribute('allowusermedia', true)
+        frame.setAttribute('allow', 'microphone *; camera *; geolocation *; autoplay; fullscreen;')
+
+        div.appendChild(frame);
+
+        prerenderFrame.setAttribute('class', 'hadron-iframe quark_chat_' + this.sizeClass);
+        prerenderFrame.setAttribute('frameborder', 0)
+        prerenderFrame.setAttribute('scrolling', 'no')
+
+        div.appendChild(prerenderFrame);
+        div.appendChild(style);        
+
+        prerenderFrame.classList.add(CLASS.VISIBLE);
+        frame.classList.add(CLASS.INVISIBLE);
+    
+        event.on(zoid.EVENT.RENDERED, () => {
+            prerenderFrame.classList.remove(CLASS.VISIBLE);
+            prerenderFrame.classList.add(CLASS.INVISIBLE);
+    
+            frame.classList.remove(CLASS.INVISIBLE);
+            frame.classList.add(CLASS.VISIBLE);
+    
+            setTimeout(() => {
+                destroyElement(prerenderFrame);
+            }, 1000);
+        });
+
+        event.on(zoid.EVENT.RESIZE, ({ width: newWidth, height: newHeight }) => {
+            if (typeof newWidth === 'number') {
+                div.style.width = toCSS(newWidth);
+            }
+    
+            if (typeof newHeight === 'number') {
+                div.style.height = toCSS(newHeight);
+            }
+        });
+
+        return div;
+    }})
+  console.log('Generating iframe with data: ', data)
+
+  data.minimize = () => {
+    console.log('Minimizing')
+    if (this.botRemembersState) {
+      this.setOpenState(false);
+    }
+
+    jQuery(".hadron-iframe").hide();
+    jQuery("#hadron-toggle-1").show();
+  }
+
+  hadronLauncherIframe(data).render('body')
+  this.iframeCreated = true
+  jQuery(".hadron-iframe").show();      
+
+
   }
 
   regLookUp(successCallback) {
@@ -269,7 +356,7 @@ class HadronLauncher {
   // Custom stylesheet from user.
   getStylesheet() {
     if (this.launcherExternalCSS != "") {
-      if (this.launcherExternalCSS.indexOf('https://') === 0) {
+      if (1||this.launcherExternalCSS.indexOf('https://') === 0) {
         this.appendCSS(this.launcherExternalCSS);
       } else {
         console.log("Ignored user stylesheet, did not begin with https://");
@@ -279,4 +366,4 @@ class HadronLauncher {
 }
 
 var inToggle
-window.inToggle = inToggle = new HadronLauncher("inToggle", ".hadron-button");
+window.inToggle = inToggle = new HadronLauncher("inToggle", "#hadron-container");

@@ -16,10 +16,16 @@ module.exports = merge(common, {
       template: 'build/loaders/' + (process.env.HADRON_DEV_HTML_LOADER || 'dev.loader.html'),
       favicon: 'src/assets/images/logo.png',
       inject: true,
+      chunks: ['launcher'],
       templateParameters: { 
           bbotUrl: process.env.BBOT_URL || 'http://localhost:5000/restful_channel', 
           bbotId: process.env.BBOT_ID
       }      
+    }),
+    new HtmlWebpackPlugin({
+      filename: path.resolve(__dirname, '../dist/hadron.app.html'),
+      template: 'build/hadron.app.html',                        
+      chunks: ['hadron']
     }),
   ]
 });

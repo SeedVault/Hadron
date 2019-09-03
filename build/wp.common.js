@@ -10,7 +10,8 @@ function resolve(dir) {
 module.exports = {
     context: path.resolve(__dirname, '../'),
     entry: {
-        app: './src/hadron.launcher.js'
+        launcher: './src/hadron.launcher.js',
+        hadron: './src/hadron.js'
     },
     module: {
         rules: [

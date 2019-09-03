@@ -5,6 +5,9 @@
  Seed Vault Code (c) Botanic Technologies, Inc. Used under license.
 */
 
+import Artyom from 'artyom.js';
+import * as Modernizr from 'modernizr'
+import zoid from 'zoid'
 
 import './assets/css/input.css';
 import './assets/css/reply.css';
@@ -15,12 +18,9 @@ import './assets/css/typing.css';
 
 import './assets/css/jquery.toast.css';
 
-import Artyom from 'artyom.js';
-
 // Load the storage facade
 import {HadronStorage} from './hadron.storage.js';
 
-import * as Modernizr from 'modernizr'
 
 
 const Config = {
@@ -40,7 +40,6 @@ window.addEventListener('error', function (e) {
   console.log(error);
 });
 
-
 // The core class of Hadron
 class Hadron {
   constructor(self, target, options) {
@@ -48,7 +47,7 @@ class Hadron {
 
   		this.name = self;
 
-      this.hadronButton = jQuery(target).first();
+      this.hadronButton = jQuery(target);
 
       this.hasWebGL              = false;
       this.hasWebGLExtensions    = false;
@@ -121,9 +120,9 @@ class Hadron {
       this.botUserData        = this.getControlData("bot-user-data-json", "");
 
       this.botsFirstMessage   = this.getControlData("bot-first-message", "");
-      this.botsFirstMessageTrigger = this.getControlData("bot-first-message", "hello");
+      this.botsFirstMessageTrigger = this.getControlData("bot-first-message-trigger", "hello");
       this.botTalksFirst      = this.getControlData("bot-talks-first", false, "bool");
-
+      
       this.botResetOnLoad     = this.getControlData("bot-reset-on-load", false, "bool");
       
       this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
@@ -290,19 +289,30 @@ class Hadron {
 
     // Reads data elements from a control, applies a format and tests.
     getControlData(field, defaultValue = false, dataType = "string") {
-      var foundData = this.hadronButton.data(field);
-      foundData = this.urldecode(foundData);
-
       
+      field = this.toCamelCase(field)
+
+      var foundData = window.xprops[field] //getting config thanks to zoid
+      //foundData = this.urldecode(foundData);
+
+      console.log('config ' + field + ': ' + foundData)  
       if (this.isUndefined(foundData)) {
         foundData = defaultValue;
       }
 
       if (dataType == "bool") {
         foundData = this.checkBoolean(foundData);
-      }
+      }      
+      return  foundData;
+    }
 
-      return foundData;
+    toCamelCase(str) {
+      return str.replace(
+        /([-_][a-z])/g,
+        (group) => group.toUpperCase()
+                    .replace('-', '')
+                    .replace('_', '')
+      );
     }
 
     // Clean up strings
@@ -386,7 +396,7 @@ class Hadron {
     // Custom stylesheet from user.
     getStylesheet() {
       if (this.externalCSS != "") {
-        if (this.externalCSS.indexOf('https://') === 0) {
+        if (1||this.externalCSS.indexOf('https://') === 0) {
           this.appendCSS(this.externalCSS);
         } else {
           this.consoleLog("Ignored user stylesheet, did not begin with https://");
@@ -416,7 +426,7 @@ class Hadron {
     // The core initializer for the chat
     initializeChatWindow() {
       if (this.hadronButton) {
-        this.hadronButton.hide();
+        //this.hadronButton.hide();
 
         var deviceHint = "quark-desktop";
 
@@ -474,19 +484,14 @@ class Hadron {
 
         if (this.chrome != false) {
           this.conversationArea.append(this.container);
-          var frame = $('<div>', {id: 'hadron', class: 'quark_chat_' + this.sizeClass})
-          frame.append(this.chrome)
-          this.hadronButton.after(frame);
 
+          this.hadronButton.after(this.chrome);
+          
           this.collapseButton = $("#hadron-toggle-2");
           this.collapseButton.click(() => {
 
-            if (window.inToggle.botRemembersState) {
-              window.inToggle.setOpenState(false);
-            }
-
-            jQuery("#hadron").hide();
-            jQuery("#hadron-toggle-1").show();
+            window.xprops.minimize()
+            
           });
 
           if (this.showRefresh == true) {
@@ -525,7 +530,7 @@ class Hadron {
           this.chrome.fadeTo(0.25, 1.0);
         }
 
-        parent.fullyLoaded = true;
+        this.fullyLoaded = true;
 
         // This may be a bad idea. This isn't firing, it isn't correct JEM
         //$(this.quarkWrap).on( "DOMMouseScroll", function( event ) {
@@ -2575,8 +2580,14 @@ if ( typeof Object.create !== 'function' ) {
 
 })( jQuery, window, document );
 
+//conect iframe with parent
+zoid.create({
+    tag: 'hadron-iframe-handler', // This has to be unique per js loaded on the page
+    url: 'hadron.app.html'
+  })
+
 var inControl;
-window.inControl = inControl = new Hadron("inControl", ".hadron-button");
+window.inControl = inControl = new Hadron("inControl", "#hadron-container");
 inControl.runControl();
 
 window.onload = function() {
