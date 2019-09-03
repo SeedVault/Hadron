@@ -251,9 +251,16 @@ class HadronLauncher {
     var data = this.hadronButton.data();
     data.botIsSecure = this.isSecure;
 
+    var hadronAppUrl  
+    if (process.env.NODE_ENV == 'development') {
+      hadronAppUrl = 'hadron.app.html'  
+    } else if (process.env.NODE_ENV == 'production') {
+      hadronAppUrl = (process.env.HADRON_URL || 'https://hadron.botanic.io/') + 'hadron.app.html'
+    }
+
     var hadronLauncherIframe = zoid.create({
     tag: 'hadron-iframe-handler', // This has to be unique per js loaded on the page
-    url: 'hadron.app.html',
+    url: hadronAppUrl,
     
     containerTemplate: ({ uid, frame, prerenderFrame, doc, props, event, dimensions : { width, height } }) => {
         const CLASS = {
