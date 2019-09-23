@@ -342,6 +342,16 @@ class HadronLauncher {
     jQuery("#hadron-toggle-1").show();
   }
 
+  //adding parameters in url to data  
+  var url = new URL(document.location);  
+  var searchParams = new URLSearchParams(url.search);
+  for(var pair of searchParams.entries()) {
+    // check if field is already set in code snippet, dont overwrite it
+    if (this.isUndefined(data[pair[0]])) {
+      data[pair[0]] = pair[1]      
+    }
+  }
+  
   hadronLauncherIframe(data).render('body')
   this.iframeCreated = true
   jQuery(".hadron-iframe").show();      

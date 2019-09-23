@@ -140,6 +140,7 @@ class Hadron {
       this.trackAnonymousUserId = this.getControlData("bot-track-anonymous-user-id", false, "bool");
       this.userId             = this.getControlData("bot-userid", this.getAnonymousUserId(this.trackAnonymousUserId));    
       this.botId              = this.getControlData("bot-id", Config.botId);
+      this.pubId              = this.getControlData("bot-publisher-id", "")
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
       this.recallInteractions = this.getControlData("bot-recall-interactions", 0); // number of interactions to be remembered and brought back upon restart
@@ -261,6 +262,7 @@ class Hadron {
 
     // This gets the process started based on the config values.
     runControl() {
+      console.log('data from launcher: ', window.xprops)
       this.initializeChatWindow();
     }
 
@@ -290,15 +292,14 @@ class Hadron {
     // Reads data elements from a control, applies a format and tests.
     getControlData(field, defaultValue = false, dataType = "string") {
       
-      field = this.toCamelCase(field)
+      let fieldcc = this.toCamelCase(field)
 
-      var foundData = window.xprops[field] //getting config thanks to zoid
+      var foundData = window.xprops[fieldcc] //getting config thanks to zoid
       //foundData = this.urldecode(foundData);
-
-      console.log('config ' + field + ': ' + foundData)  
+      
       if (this.isUndefined(foundData)) {
-        foundData = defaultValue;
-      }
+          foundData = defaultValue;                            
+      } 
 
       if (dataType == "bool") {
         foundData = this.checkBoolean(foundData);
@@ -1740,6 +1741,7 @@ class Hadron {
         'orgId': 1,
         'botId': this.botId,
         'userId': this.userId,   
+        'pubId': this.pubId,
         'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
         'actrEnabled': this.isACTRRunning(),         
         'ttsTimeScale': ttsTimeScale,     
