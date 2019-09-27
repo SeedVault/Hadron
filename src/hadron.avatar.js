@@ -1204,6 +1204,7 @@ export class HadronAvatar {
   }
   
   avatarState(state, duration) {
+    console.log('Avatar state to: ' + state)
     duration = duration || 0.5
     this.avatarState == state;
     //console.log('crossfade to: ' + state + ' in ' + duration + ' seconds')
@@ -1351,7 +1352,7 @@ export class HadronAvatar {
       },
       () => {
       // End callback
-        
+          this.stopMouthVisemes()
           this.avatarState('neutral', 0.5);
         }
       );
@@ -1363,9 +1364,9 @@ export class HadronAvatar {
     setTimeout(() => {
       //console.log(visemes)      
       
-      let currViseme, nextViseme, prevViseme, morphT1, morphT2, animations, prevDuration, mouthMixer, setDuration, setDuration2
+      let currViseme, nextViseme, prevViseme, morphT1, morphT2, prevDuration, mouthMixer, setDuration, setDuration2
       prevDuration = 0
-      animations = []
+      this.visemeAnimations = []
         
       this.mouthMixer = new THREE.AnimationMixer(this.meshes['head_geo']);				                 
 
@@ -1404,20 +1405,28 @@ export class HadronAvatar {
           animation.startAt(prevDuration / 1000)
           animation.weight = 1
 
-          animations.push(animation)
+          this.visemeAnimations.push(animation)
           //console.log("Queued animation from " + currViseme.value + " to " + nextViseme.value + " - duration " + setDuration + " - startAt: " + prevDuration / 1000)
 
           prevDuration += duration
 
       }
       
-      animations.forEach((a) => {              
+      this.visemeAnimations.forEach((a) => {              
           a.play()
       })
 
           
         }, window.inAvatar.options.speechDelay)
         
+  }
+
+  stopMouthVisemes() {
+    this.visemeAnimations.forEach((a) => {              
+          a.stop()
+          a.reset()
+      })
+
   }
 
   getMorphTarget(avatarType, visemes) {

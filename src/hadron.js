@@ -1629,12 +1629,15 @@ class Hadron {
 
   // Only pause if necessary, Chrome complained sometimes.
   pauseAudio() {
+    
     if (this.soundObject != false) {
-      if (this.soundObject.duration > 0 && !this.soundObject.paused) {
+     /* if (this.soundObject.duration > 0 && !this.soundObject.paused) {
         this.soundObject.pause();
       }
 
-      this.soundObject.muted = false;
+      this.soundObject.muted = false;*/
+      console.log('stopping audio')
+      this.soundObject.pause()
     }
   }
 
@@ -1652,6 +1655,7 @@ class Hadron {
     req.open('GET', url, true);
     req.responseType = 'blob';
     
+    
     req.onload = function() {
       console.log('audio loaded with status ' + this.status )
        // Onload is triggered even on 404
@@ -1660,13 +1664,14 @@ class Hadron {
           var audioSrc = URL.createObjectURL(this.response); // IE10+
           // Video is now downloaded
           // and we can set it as source on the video element
-          this.soundObject = new Audio();
+          inControl.soundObject = new Audio();
 
           // If it was off, keep it off!
           // If there is a pause, no voice detected for a few seconds, turn off all reco.
           // If the user clicks the stop, it stops.
           // If the user says "stop listening" or something similar, it stops.
-          this.soundObject.onended = () => {
+          var pauseEndEvent = () => {
+            console.log('sound ended')
 
             if (inControl.returnToReco == true) {
               setTimeout(function(){
@@ -1677,11 +1682,15 @@ class Hadron {
               console.log('playAudio() endCallback')
               endCallback();
             }
+            inControl.soundObject.onended = undefined
+            inControl.soundObject.onpause = undefined  
           };
+          inControl.soundObject.onended = pauseEndEvent
+          inControl.soundObject.onpause = pauseEndEvent
 
-          this.soundObject.src = audioSrc;
+          inControl.soundObject.src = audioSrc;
           console.log('playing audio')
-          this.soundObject.play()
+          inControl.soundObject.play()
 
           if (startCallback) {
             startCallback()
