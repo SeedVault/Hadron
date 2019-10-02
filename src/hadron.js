@@ -141,6 +141,7 @@ class Hadron {
       this.userId             = this.getControlData("bot-userid", this.getAnonymousUserId(this.trackAnonymousUserId));    
       this.botId              = this.getControlData("bot-id", Config.botId);
       this.pubId              = this.getControlData("bot-publisher-id", "")
+      this.pubToken           = this.getControlData("bot-publisher-token", "")
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
       this.recallInteractions = this.getControlData("bot-recall-interactions", 0); // number of interactions to be remembered and brought back upon restart
@@ -1750,7 +1751,7 @@ class Hadron {
         'orgId': 1,
         'botId': this.botId,
         'userId': this.userId,   
-        'pubId': this.pubId,
+        'pubToken': this.pubToken,
         'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
         'actrEnabled': this.isACTRRunning(),         
         'ttsTimeScale': ttsTimeScale,     
