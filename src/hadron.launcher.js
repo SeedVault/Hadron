@@ -34,7 +34,12 @@ class HadronLauncher {
     this.chatWindowURI = Config.all_your_bases_are_belong_to_us + 'hadron.php';
 
     this.target = target;
-    this.hadronButton = jQuery(target).first();
+    
+    this.init()
+  }
+
+  init() {
+    this.hadronButton = jQuery(this.target).first();        
     this.chrome = false;
     this.startFullscreen = false;
     this.fullyLoaded = false;
@@ -60,6 +65,21 @@ class HadronLauncher {
 
     //this.initializeChatWindow();
     this.showChatToggle();
+  }
+
+  getHadronAttributes(attr) {
+    if (attr) {
+      res = this.hadronButton.attr('data-' + attr)
+    } else {
+      var res = {};    
+      jQuery.each(this.hadronButton[0].attributes, (index, attribute) => {
+          if (attribute.name.startsWith('data-')) {
+            var newAttrName = this.toCamelCase(attribute.name.replace('data-', ''))
+            res[newAttrName] = attribute.value;
+          }
+      })
+    }    
+    return res;
   }
 
   // Sets a flag if the parent site is running HTTPS
@@ -91,7 +111,7 @@ class HadronLauncher {
 
   // Reads data elements from a control, applies a format and tests.
   getControlData(field, defaultValue = false, dataType = "string") {
-    var foundData = this.hadronButton.data(field);
+    var foundData = this.getHadronAttributes(field);
 
     //console.log("gcd: " + field + " " + foundData);
 
@@ -99,11 +119,9 @@ class HadronLauncher {
 
       var url = new URL(document.location);  
       var searchParams = new URLSearchParams(url.search);    
-      var camelField = this.toCamelCase(field)
-      console.log(camelField)
+      var camelField = this.toCamelCase(field)      
       if (searchParams.has(camelField)) {      
-        foundData = searchParams.get(camelField)
-        console.log(foundData)
+        foundData = searchParams.get(camelField)        
       } else {
         foundData = defaultValue;
       }
@@ -268,7 +286,7 @@ class HadronLauncher {
       return;
     }
 
-    var data = this.hadronButton.data();
+    var data = this.getHadronAttributes()
     data.botIsSecure = this.isSecure;
 
     var hadronAppUrl  
@@ -278,78 +296,80 @@ class HadronLauncher {
       hadronAppUrl = (process.env.HADRON_URL || 'https://hadron.botanic.io/') + 'hadron.app.html'
     }
 
-    var hadronLauncherIframe = zoid.create({
-    tag: 'hadron-iframe-handler', // This has to be unique per js loaded on the page
-    url: hadronAppUrl,
-    
-    containerTemplate: ({ uid, frame, prerenderFrame, doc, props, event, dimensions : { width, height } }) => {
-        const CLASS = {
-          VISIBLE:   'visible',
-          INVISIBLE: 'invisible'
-        };
-        let div = doc.createElement('div');        
-        div.setAttribute('id', uid);
-        
-        const style = doc.createElement('style');
-        if (props.cspNonce) {
-            style.setAttribute('nonce', props.cspNonce);
-        }
-        style.appendChild(doc.createTextNode(`
-            #${ uid } {              
-            }
-            #${ uid } > iframe {                    
-                transition: opacity .2s ease-in-out;
-            }
-            #${ uid } > iframe.${ CLASS.INVISIBLE } {
-                opacity: 0;
-            }
-            #${ uid } > iframe.${ CLASS.VISIBLE } {
-                opacity: 1;
-        }
-        `));
+    if (!window.hadronLauncherIframe) {
+      window.hadronLauncherIframe = zoid.create({
+      tag: 'hadron-iframe-handler', // This has to be unique per js loaded on the page
+      url: hadronAppUrl,
+      
+      containerTemplate: ({ uid, frame, prerenderFrame, doc, props, event, dimensions : { width, height } }) => {
+          const CLASS = {
+            VISIBLE:   'visible',
+            INVISIBLE: 'invisible'
+          };
+          let div = doc.createElement('div');        
+          div.setAttribute('id', uid);
+          
+          const style = doc.createElement('style');
+          if (props.cspNonce) {
+              style.setAttribute('nonce', props.cspNonce);
+          }
+          style.appendChild(doc.createTextNode(`
+              #${ uid } {              
+              }
+              #${ uid } > iframe {                    
+                  transition: opacity .2s ease-in-out;
+              }
+              #${ uid } > iframe.${ CLASS.INVISIBLE } {
+                  opacity: 0;
+              }
+              #${ uid } > iframe.${ CLASS.VISIBLE } {
+                  opacity: 1;
+          }
+          `));
 
-        frame.setAttribute('class', 'hadron-iframe quark_chat_' + this.sizeClass);
-        frame.setAttribute('frameborder', 0)
-        frame.setAttribute('scrolling', 'no')
-        frame.setAttribute('allowusermedia', true)
-        frame.setAttribute('allow', 'microphone *; camera *; geolocation *; autoplay; fullscreen;')
+          frame.setAttribute('class', 'hadron-iframe quark_chat_' + this.sizeClass);
+          frame.setAttribute('frameborder', 0)
+          frame.setAttribute('scrolling', 'no')
+          frame.setAttribute('allowusermedia', true)
+          frame.setAttribute('allow', 'microphone *; camera *; geolocation *; autoplay; fullscreen;')
 
-        div.appendChild(frame);
+          div.appendChild(frame);
 
-        prerenderFrame.setAttribute('class', 'hadron-iframe quark_chat_' + this.sizeClass);
-        prerenderFrame.setAttribute('frameborder', 0)
-        prerenderFrame.setAttribute('scrolling', 'no')
+          prerenderFrame.setAttribute('class', 'hadron-iframe quark_chat_' + this.sizeClass);
+          prerenderFrame.setAttribute('frameborder', 0)
+          prerenderFrame.setAttribute('scrolling', 'no')
 
-        div.appendChild(prerenderFrame);
-        div.appendChild(style);        
+          div.appendChild(prerenderFrame);
+          div.appendChild(style);        
 
-        prerenderFrame.classList.add(CLASS.VISIBLE);
-        frame.classList.add(CLASS.INVISIBLE);
-    
-        event.on(zoid.EVENT.RENDERED, () => {
-            prerenderFrame.classList.remove(CLASS.VISIBLE);
-            prerenderFrame.classList.add(CLASS.INVISIBLE);
-    
-            frame.classList.remove(CLASS.INVISIBLE);
-            frame.classList.add(CLASS.VISIBLE);
-    
-            setTimeout(() => {
-                destroyElement(prerenderFrame);
-            }, 1000);
-        });
+          prerenderFrame.classList.add(CLASS.VISIBLE);
+          frame.classList.add(CLASS.INVISIBLE);
+      
+          event.on(zoid.EVENT.RENDERED, () => {
+              prerenderFrame.classList.remove(CLASS.VISIBLE);
+              prerenderFrame.classList.add(CLASS.INVISIBLE);
+      
+              frame.classList.remove(CLASS.INVISIBLE);
+              frame.classList.add(CLASS.VISIBLE);
+      
+              setTimeout(() => {
+                  destroyElement(prerenderFrame);
+              }, 1000);
+          });
 
-        event.on(zoid.EVENT.RESIZE, ({ width: newWidth, height: newHeight }) => {
-            if (typeof newWidth === 'number') {
-                div.style.width = toCSS(newWidth);
-            }
-    
-            if (typeof newHeight === 'number') {
-                div.style.height = toCSS(newHeight);
-            }
-        });
+          event.on(zoid.EVENT.RESIZE, ({ width: newWidth, height: newHeight }) => {
+              if (typeof newWidth === 'number') {
+                  div.style.width = toCSS(newWidth);
+              }
+      
+              if (typeof newHeight === 'number') {
+                  div.style.height = toCSS(newHeight);
+              }
+          });
 
-        return div;
-    }})
+          return div;
+      }})
+    }
     console.log('Generating iframe with data: ', data)
 
     data.minimize = () => {
@@ -363,7 +383,7 @@ class HadronLauncher {
         jQuery("#hadron-toggle-1").show();
       }
       if (this.botCloseButtonAction == 'unload') {
-        this.unloadHadron()
+        this.hideHadron()
       }
     }
 
@@ -377,15 +397,22 @@ class HadronLauncher {
       }
     }
     
-    hadronLauncherIframe(data).render('body')
+    window.hadronLauncherIframe(data).render('body')
     this.iframeCreated = true
     jQuery(".hadron-iframe").show();      
 
   }
 
-  unloadHadron() {
+  hideHadron() {
     jQuery(".hadron-iframe").remove()
-    jQuery("#hadron-container").remove()
+    jQuery("#hadron-toggle-1").hide()    
+    this.iframeCreated = false
+    this.hadronButton.removeData()
+  }
+  reloadHadron() {
+    this.initializeChatWindow()
+    this.iframeCreated = true
+    jQuery(".hadron-iframe").show();      
   }
 
   regLookUp(successCallback) {
