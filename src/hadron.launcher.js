@@ -421,5 +421,7 @@ class HadronLauncher {
 
 }
 
+window.HadronLauncher = HadronLauncher
+
 var inToggle
 window.inToggle = inToggle = new HadronLauncher("inToggle", "#hadron-container");
