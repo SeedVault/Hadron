@@ -51,6 +51,7 @@ class HadronLauncher {
     this.togglePulses        = this.getControlData("bot-toggle-pulses", true, "bool");
     this.botAutoOpens        = this.getControlData("bot-auto-opens", false, "bool");
     this.botRemembersState   = this.getControlData("bot-remembers-state", true, "bool");
+    this.botCloseButtonAction = this.getControlData("bot-close-button-action", "minimize");
 
     this.getStylesheet();
     this.checkForHTTPS();
@@ -95,7 +96,17 @@ class HadronLauncher {
     //console.log("gcd: " + field + " " + foundData);
 
     if (this.isUndefined(foundData)) {
-      foundData = defaultValue;
+
+      var url = new URL(document.location);  
+      var searchParams = new URLSearchParams(url.search);    
+      var camelField = this.toCamelCase(field)
+      console.log(camelField)
+      if (searchParams.has(camelField)) {      
+        foundData = searchParams.get(camelField)
+        console.log(foundData)
+      } else {
+        foundData = defaultValue;
+      }
     }
 
     if (dataType == "bool") {
@@ -104,6 +115,15 @@ class HadronLauncher {
 
     return foundData;
   }
+  
+  toCamelCase(str) {
+      return str.replace(
+        /([-_][a-z])/g,
+        (group) => group.toUpperCase()
+                    .replace('-', '')
+                    .replace('_', '')
+      );
+    }
 
   // Map text, etc to true false response.
   checkBoolean(boolValue) {
@@ -333,13 +353,19 @@ class HadronLauncher {
   console.log('Generating iframe with data: ', data)
 
   data.minimize = () => {
-    console.log('Minimizing')
+    console.log('Close button action: ' + this.botCloseButtonAction)
     if (this.botRemembersState) {
       this.setOpenState(false);
     }
 
-    jQuery(".hadron-iframe").hide();
-    jQuery("#hadron-toggle-1").show();
+    if (this.botCloseButtonAction == 'minimize') {
+      jQuery(".hadron-iframe").hide();
+      jQuery("#hadron-toggle-1").show();
+    }
+    if (this.botCloseButtonAction == 'unload') {
+      jQuery(".hadron-iframe").remove()
+      jQuery("#hadron-container").remove()
+    }
   }
 
   //adding parameters in url to data  
@@ -380,6 +406,16 @@ class HadronLauncher {
       }
     }
   }
+
+  toCamelCase(str) {
+      return str.replace(
+        /([-_][a-z])/g,
+        (group) => group.toUpperCase()
+                    .replace('-', '')
+                    .replace('_', '')
+      );
+    }
+
 }
 
 var inToggle

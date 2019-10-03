@@ -146,7 +146,7 @@ class Hadron {
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
       this.recallInteractions = this.getControlData("bot-recall-interactions", 0); // number of interactions to be remembered and brought back upon restart
       this.buttonClass        = this.getControlData("bot-button-class", "botanic-button");
-      this.botSaysClass       = this.getControlData("bot-button-class", "botanic-green");
+      this.botSaysClass       = this.getControlData("bot-button-class", "botanic-green");      
       this.botReplyClass      = this.getControlData("bot-reply-class", "botanic-silver");
       this.showDebug          = this.getControlData("bot-show-debug", false, "bool");
       this.useFlowText        = this.getControlData("bot-use-flow-text", false, "bool");
@@ -164,6 +164,7 @@ class Hadron {
       this.toggleIcon         = this.getControlData("bot-toggle-icon", "chat_bubble_outline");
       this.botTitle           = this.getControlData("bot-title", "Powered by Botanic");
       this.botSubTitle        = this.getControlData("bot-subtitle", "Powered by Botanic Technologies");
+      this.botCloseButtonTitle = this.getControlData("bot-close-button-title", "Close");
       this.closeClass         = this.getControlData("bot-close-class", "transparent");
       this.refreshClass       = this.getControlData("bot-refresh-class", "transparent");
       this.closeIcon          = this.getControlData("bot-close-icon", "expand_more");
@@ -294,7 +295,6 @@ class Hadron {
     getControlData(field, defaultValue = false, dataType = "string") {
       
       let fieldcc = this.toCamelCase(field)
-
       var foundData = window.xprops[fieldcc] //getting config thanks to zoid
       //foundData = this.urldecode(foundData);
       
@@ -459,7 +459,7 @@ class Hadron {
             dashicons.append('<a id="hadron-refresh" title="" class="btn-floating hadron-refresh hadron-toggle-2 ' + this.refreshClass + ' hadron-toggle"><i class="material-icons">refresh</i></a>');
           }
 
-          dashicons.append('<a id="hadron-toggle-2" title="Close" class="btn-floating hadron-toggle-2 ' + this.closeClass + ' hadron-toggle"><i class="material-icons">' + this.closeIcon + '</i></a>');
+          dashicons.append('<a id="hadron-toggle-2" title="' + this.botCloseButtonTitle + '" class="btn-floating hadron-toggle-2 ' + this.closeClass + ' hadron-toggle"><i class="material-icons">' + this.closeIcon + '</i></a>');
 
           var contentOverlay = $('<div>', {class: 'quark-content-overlay-container'});
           this.conversationArea = $('<div>', {id: 'quark-conversation-area'});
