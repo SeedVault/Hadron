@@ -350,39 +350,42 @@ class HadronLauncher {
 
         return div;
     }})
-  console.log('Generating iframe with data: ', data)
+    console.log('Generating iframe with data: ', data)
 
-  data.minimize = () => {
-    console.log('Close button action: ' + this.botCloseButtonAction)
-    if (this.botRemembersState) {
-      this.setOpenState(false);
+    data.minimize = () => {
+      console.log('Close button action: ' + this.botCloseButtonAction)
+      if (this.botRemembersState) {
+        this.setOpenState(false);
+      }
+
+      if (this.botCloseButtonAction == 'minimize') {
+        jQuery(".hadron-iframe").hide();
+        jQuery("#hadron-toggle-1").show();
+      }
+      if (this.botCloseButtonAction == 'unload') {
+        this.unloadHadron()
+      }
     }
 
-    if (this.botCloseButtonAction == 'minimize') {
-      jQuery(".hadron-iframe").hide();
-      jQuery("#hadron-toggle-1").show();
+    //adding parameters in url to data  
+    var url = new URL(document.location);  
+    var searchParams = new URLSearchParams(url.search);
+    for(var pair of searchParams.entries()) {
+      // check if field is already set in code snippet, dont overwrite it
+      if (this.isUndefined(data[pair[0]])) {
+        data[pair[0]] = pair[1]      
+      }
     }
-    if (this.botCloseButtonAction == 'unload') {
-      jQuery(".hadron-iframe").remove()
-      jQuery("#hadron-container").remove()
-    }
+    
+    hadronLauncherIframe(data).render('body')
+    this.iframeCreated = true
+    jQuery(".hadron-iframe").show();      
+
   }
 
-  //adding parameters in url to data  
-  var url = new URL(document.location);  
-  var searchParams = new URLSearchParams(url.search);
-  for(var pair of searchParams.entries()) {
-    // check if field is already set in code snippet, dont overwrite it
-    if (this.isUndefined(data[pair[0]])) {
-      data[pair[0]] = pair[1]      
-    }
-  }
-  
-  hadronLauncherIframe(data).render('body')
-  this.iframeCreated = true
-  jQuery(".hadron-iframe").show();      
-
-
+  unloadHadron() {
+    jQuery(".hadron-iframe").remove()
+    jQuery("#hadron-container").remove()
   }
 
   regLookUp(successCallback) {
