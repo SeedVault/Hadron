@@ -179,7 +179,7 @@ class Hadron {
       this.storageAvailable   = true;
       this.interactionsLS     = "chat-quark-interactions";
       
-      if (this.recallInteractions != 0) {
+      if (this.recallInteractions) {
         this.consoleLog('recallInteractions: ' + this.recallInteractions);
 
         this.interactionsHistory = (this.storageAvailable && JSON.parse(this.hadronStorage.getItem(this.interactionsLS))) || [];
