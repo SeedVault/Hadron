@@ -127,6 +127,8 @@ class Hadron {
       
       this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
       this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");
+      this.useLocalTTS        = this.getControlData("bot-local-tts", false, "bool");
+      this.ttsVoiceId         = this.getControlData("bot-tts-voice-id", 0)
 
       this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
@@ -155,8 +157,7 @@ class Hadron {
       this.isSecure           = this.getControlData("bot-is-secure", false, "bool");
 
       this.hijackRefresh      = this.getControlData("bot-refresh-uri", "");
-      this.showRefresh        = this.getControlData("bot-show-refresh", false, "bool");
-      this.useLocalTTS        = this.getControlData("bot-local-tts", false, "bool");
+      this.showRefresh        = this.getControlData("bot-show-refresh", false, "bool");      
       this.sizeClass          = this.getControlData("bot-size-class",   "standard");
       this.togglePulses       = this.getControlData("bot-toggle-pulses", true, "bool");
       this.toggleClass        = this.getControlData("bot-toggle-class", "botanic-green");
@@ -170,12 +171,11 @@ class Hadron {
       this.closeIcon          = this.getControlData("bot-close-icon", "expand_more");
       this.fullscreen         = this.getControlData("bot-fullscreen", false, "bool");
       this.startFullscreen    = this.getControlData("bot-start-fullscreen", false, "bool");
-
       this.botHandler         = this.getControlData("bot-handler", "text");
-
       this.externalCSS        = this.getControlData("bot-external-css", "");
       this.externalFont       = this.getControlData("bot-load-font", "");
-
+      this.botLocale          = this.getControlData("bot-locale", "en_US")
+      
       this.storageAvailable   = true;
       this.interactionsLS     = "chat-quark-interactions";
       
@@ -1736,25 +1736,24 @@ class Hadron {
     // Reset this variable each time so TTS can work when it was appropriate.
     this.lastSpokenURI = false;
 
-    //hardcode to test bbot
-    var ttsTimeScale;
-    var voiceId;
+  
+    var ttsTimeScale;    
     if (this.isACTRRunning()) {
-      ttsTimeScale = window.inAvatar.options.ttsTimeScale
-      voiceId = window.inAvatar.voiceId
+      ttsTimeScale = window.inAvatar.options.ttsTimeScale      
     } else {
-      ttsTimeScale = 100
-      voiceId = 7
+      ttsTimeScale = 100      
     }
 
     var req_params = {
         'orgId': 1,
         'botId': this.botId,
         'userId': this.userId,   
-        'pubToken': this.pubToken,
-        'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
+        'pubToken': this.pubToken,        
+        'locale': this.botLocale,
         'actrEnabled': this.isACTRRunning(),         
+        'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
         'ttsTimeScale': ttsTimeScale,     
+        'ttsVoiceId': this.ttsVoiceId,
         'input': {
             'text': text
         }
