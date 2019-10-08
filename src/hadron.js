@@ -554,7 +554,7 @@ class Hadron {
         this.refreshContol(false);
 
         // recall previous interactions
-        if (this.recallInteractions != 0) {
+        if (this.recallInteractions) {
           var messages = [];
           var buttons = [];
           var messageObject;
@@ -623,7 +623,7 @@ class Hadron {
         return;
       }
 
-      if (this.recallInteractions == 0) {
+      if (!this.recallInteractions) {
         return;
       }
 
@@ -657,7 +657,7 @@ class Hadron {
         return;
       }
 
-      if (this.recallInteractions == 0) {
+      if (!this.recallInteractions) {
         return;
       }
 
