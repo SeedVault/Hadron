@@ -10,6 +10,6 @@ module.exports = merge(common, {
     })
   ],
   output: {
-        publicPath: process.env.HADRON_URL || 'https://hadron.botanic.io/'
+        publicPath: process.env.HADRON_URL
     }  
 })

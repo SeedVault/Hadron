@@ -293,7 +293,7 @@ class HadronLauncher {
     if (process.env.NODE_ENV == 'development') {
       hadronAppUrl = 'hadron.app.html'  
     } else if (process.env.NODE_ENV == 'production') {
-      hadronAppUrl = (HADRON_URL || 'https://hadron.botanic.io/') + 'hadron.app.html'
+      hadronAppUrl = HADRON_URL + 'hadron.app.html'
     }
 
     if (!window.hadronLauncherIframe) {

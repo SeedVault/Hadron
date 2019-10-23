@@ -137,6 +137,7 @@ class Hadron {
 
       this.use3DAvatar        = this.getControlData("bot-uses-3d-avatar", false, "bool");
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
+      this.use3DGUIConfig     = this.getControlData("bot-uses-3d-gui-config", false, "bool");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.trackAnonymousUserId = this.getControlData("bot-track-anonymous-user-id", false, "bool");

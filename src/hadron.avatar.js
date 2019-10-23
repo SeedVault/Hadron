@@ -61,8 +61,6 @@ export class HadronAvatar {
 
     this.glitch = false;
 
-    this.useGUI = true;
-
     this.sid = false;
 
     this.isRandomCamera = false;
@@ -420,196 +418,199 @@ export class HadronAvatar {
 
 
   createGUI() {
-    if (this.useGUI == true) {
-      var gui = new dat.GUI( { autoPlace: false } );
+    
+    var gui = new dat.GUI( { autoPlace: false } );
 
-      var animTuningFolder = gui.addFolder('Animation Tuning');
-      animTuningFolder.add(this.options, 'effectiveTimeScale', 0.0, 5.0).onChange((e) => {
-        this.options.effectiveTimeScale = e;
-      });
+    var animTuningFolder = gui.addFolder('Animation Tuning');
+    animTuningFolder.add(this.options, 'effectiveTimeScale', 0.0, 5.0).onChange((e) => {
+      this.options.effectiveTimeScale = e;
+    });
 
-      animTuningFolder.add(this.options, 'fadeDuration', 0.0, 4.0).onChange((e) => {
-        this.options.fadeDuration = e;
-      });
+    animTuningFolder.add(this.options, 'fadeDuration', 0.0, 4.0).onChange((e) => {
+      this.options.fadeDuration = e;
+    });
 
-      animTuningFolder.add(this.options, 'durationScale', 0.0, 5.0).step(0.05).onChange((e) => {
-        this.options.durationScale = e;
-      });
+    animTuningFolder.add(this.options, 'durationScale', 0.0, 5.0).step(0.05).onChange((e) => {
+      this.options.durationScale = e;
+    });
 
-      animTuningFolder.add(this.options, 'crossFadeEnabled').onChange((e) => {
-        this.options.crossFadeEnabled = e;
-      });
+    animTuningFolder.add(this.options, 'crossFadeEnabled').onChange((e) => {
+      this.options.crossFadeEnabled = e;
+    });
 
-      animTuningFolder.add(this.options, 'zeroSlopeAtBegin').onChange((e) => {
-        this.options.zeroSlopeAtBegin = e;
-      });
+    animTuningFolder.add(this.options, 'zeroSlopeAtBegin').onChange((e) => {
+      this.options.zeroSlopeAtBegin = e;
+    });
 
-      animTuningFolder.add(this.options, 'zeroSlopeAtEnd').onChange((e) => {
-        this.options.zeroSlopeAtEnd = e;
-      });
+    animTuningFolder.add(this.options, 'zeroSlopeAtEnd').onChange((e) => {
+      this.options.zeroSlopeAtEnd = e;
+    });
 
-      animTuningFolder.add(this.options, 'speechDelay', 0, 600).step(5).onChange((e) => {
-        this.options.speechDelay = e;
-      });
+    animTuningFolder.add(this.options, 'speechDelay', 0, 600).step(5).onChange((e) => {
+      this.options.speechDelay = e;
+    });
 
-      this.animFolder = gui.addFolder('Animation');
-      const playbackSpeedCtrl = this.animFolder.add(this.options, 'playbackSpeed', 0, 1);
+    this.animFolder = gui.addFolder('Animation');
+    const playbackSpeedCtrl = this.animFolder.add(this.options, 'playbackSpeed', 0, 1);
 
-      playbackSpeedCtrl.onChange((speed) => {
-        if (this.mixer) {
-          this.mixer.timeScale = speed;
+    playbackSpeedCtrl.onChange((speed) => {
+      if (this.mixer) {
+        this.mixer.timeScale = speed;
+      }
+    });
+
+    this.animFolder.add({playAll: () => this.playAllClips()}, 'playAll');
+
+    var sceneSettingsOptions = gui.addFolder('Scene Settings');
+    sceneSettingsOptions.add(this.options, 'useGlitch').onChange((e) => {
+      this.glitchPass.enabled = e;
+    });
+
+    sceneSettingsOptions.add(this.options, 'useVignette').onChange((e) => {
+      this.vignettePass.enabled = e;
+    });
+
+    var toonshadeOptions = gui.addFolder('Toon Settings');
+
+    toonshadeOptions.add(this.options, 'useGrayScale').onChange((e) => {
+      this.grayScalePass.enabled = e;
+    });
+
+    toonshadeOptions.add(this.options, 'useBits').onChange((e) => {
+      this.bitPass.enabled = e;
+    });
+
+    toonshadeOptions.add(this.options, 'stepSize', 2.0, 25.0).step(1.0).onChange((e) => {
+      this.bitPass.uniforms.bitSize.value = (e * 1.0);
+    });
+
+    toonshadeOptions.add(this.options, 'useSepia').onChange((e) => {
+      this.sepiaPass.enabled = e;
+    });
+
+    toonshadeOptions.add(this.options, "sepiaAmount", 0.50, 1.6).step(0.05).onChange((e) => {
+      this.sepiaPass.uniforms.amount.value = e;
+    });
+
+    toonshadeOptions.add(this.options, 'useHalftone').onChange((e) => {
+      this.halftonePass.enabled = e;
+    });
+
+    if (this.outlinePass) {
+      var outlineOptions = gui.addFolder('Outline Settings');
+      outlineOptions.add(this.options, 'useOutline').onChange((e) => {
+        this.useOutlineEffect = e;
+
+        if (this.useOutlineEffect) {
+          this.outlinePass.selectedObjects = this.outlineTargets;
+        } else {
+          this.outlinePass.selectedObjects = false;
         }
       });
 
-      this.animFolder.add({playAll: () => this.playAllClips()}, 'playAll');
+      outlineOptions.add( this.options, 'edgeStrength', 0.01, 10 ).onChange((value) => {
+        this.outlinePass.edgeStrength = Number( value );
+      } );
 
-      var sceneSettingsOptions = gui.addFolder('Scene Settings');
-      sceneSettingsOptions.add(this.options, 'useGlitch').onChange((e) => {
-        this.glitchPass.enabled = e;
-      });
+      outlineOptions.add( this.options, 'edgeGlow', 0.0, 3.0 ).onChange((value) => {
+        this.outlinePass.edgeGlow = Number( value );
+      } );
 
-      sceneSettingsOptions.add(this.options, 'useVignette').onChange((e) => {
-        this.vignettePass.enabled = e;
-      });
+      outlineOptions.add( this.options, 'edgeThickness', 1, 4 ).onChange((value) => {
+        this.outlinePass.edgeThickness = Number( value );
+      } );
 
-      var toonshadeOptions = gui.addFolder('Toon Settings');
+      outlineOptions.add( this.options, 'pulsePeriod', 0.0, 5 ).onChange((value) => {
+        this.outlinePass.pulsePeriod = Number( value );
+      } );
 
-      toonshadeOptions.add(this.options, 'useGrayScale').onChange((e) => {
-        this.grayScalePass.enabled = e;
-      });
+      outlineOptions.addColor( this.options, 'visibleEdgeColor' ).onChange((value) =>  {
+        this.outlinePass.visibleEdgeColor.set( value );
+      } );
 
-      toonshadeOptions.add(this.options, 'useBits').onChange((e) => {
-        this.bitPass.enabled = e;
-      });
+      outlineOptions.addColor( this.options, 'hiddenEdgeColor' ).onChange((value) =>  {
+        this.outlinePass.hiddenEdgeColor.set( value );
+      } );
 
-      toonshadeOptions.add(this.options, 'stepSize', 2.0, 25.0).step(1.0).onChange((e) => {
-        this.bitPass.uniforms.bitSize.value = (e * 1.0);
-      });
+      outlineOptions.add( this.options, 'usePatternTexture' ).onChange((value) => {
+        this.outlinePass.usePatternTexture = value;
+      } );
+    }
 
-      toonshadeOptions.add(this.options, 'useSepia').onChange((e) => {
-        this.sepiaPass.enabled = e;
-      });
+    var amLight = gui.addFolder('Ambient Light');
+    amLight.addColor(this.options, 'ambientColor').onChange((e) => {
+      this.light1.color = new THREE.Color(e);
+    });
 
-      toonshadeOptions.add(this.options, "sepiaAmount", 0.50, 1.6).step(0.05).onChange((e) => {
-        this.sepiaPass.uniforms.amount.value = e;
-      });
+    amLight.add(this.options, 'ambientIntensity', 0, 1).onChange((e) => {
+      this.light1.intensity = e;
+    });
 
-      toonshadeOptions.add(this.options, 'useHalftone').onChange((e) => {
-        this.halftonePass.enabled = e;
-      });
+    var dirLight = gui.addFolder('Directional Light');
+    dirLight.addColor(this.options, 'directionalColor').onChange((e) => {
+      this.light2.color = new THREE.Color(e);
+    });
 
-      if (this.outlinePass) {
-        var outlineOptions = gui.addFolder('Outline Settings');
-        outlineOptions.add(this.options, 'useOutline').onChange((e) => {
-          this.useOutlineEffect = e;
+    dirLight.add(this.options, 'directionalIntensity', 0, 1).onChange((e) => {
+      this.light2.intensity = e;
+    });
 
-          if (this.useOutlineEffect) {
-            this.outlinePass.selectedObjects = this.outlineTargets;
-          } else {
-            this.outlinePass.selectedObjects = false;
-          }
-        });
 
-        outlineOptions.add( this.options, 'edgeStrength', 0.01, 10 ).onChange((value) => {
-        	this.outlinePass.edgeStrength = Number( value );
-        } );
+    if (this.usePointLight || this.useRectLight) {
+      var pointLight;
 
-        outlineOptions.add( this.options, 'edgeGlow', 0.0, 3.0 ).onChange((value) => {
-        	this.outlinePass.edgeGlow = Number( value );
-        } );
-
-        outlineOptions.add( this.options, 'edgeThickness', 1, 4 ).onChange((value) => {
-        	this.outlinePass.edgeThickness = Number( value );
-        } );
-
-        outlineOptions.add( this.options, 'pulsePeriod', 0.0, 5 ).onChange((value) => {
-        	this.outlinePass.pulsePeriod = Number( value );
-        } );
-
-        outlineOptions.addColor( this.options, 'visibleEdgeColor' ).onChange((value) =>  {
-  				this.outlinePass.visibleEdgeColor.set( value );
-  			} );
-
-  			outlineOptions.addColor( this.options, 'hiddenEdgeColor' ).onChange((value) =>  {
-  				this.outlinePass.hiddenEdgeColor.set( value );
-  			} );
-
-        outlineOptions.add( this.options, 'usePatternTexture' ).onChange((value) => {
-  				this.outlinePass.usePatternTexture = value;
-  			} );
+      if (this.usePointLight) {
+        pointLight = gui.addFolder('Point Light');
       }
 
-      var amLight = gui.addFolder('Ambient Light');
-      amLight.addColor(this.options, 'ambientColor').onChange((e) => {
-        this.light1.color = new THREE.Color(e);
-      });
+      if (this.useRectLight) {
+        pointLight = gui.addFolder('Rect Light');
+      }
 
-      amLight.add(this.options, 'ambientIntensity', 0, 1).onChange((e) => {
-        this.light1.intensity = e;
-      });
-
-      var dirLight = gui.addFolder('Directional Light');
-      dirLight.addColor(this.options, 'directionalColor').onChange((e) => {
+      pointLight.addColor(this.options, 'pointColorLeft').onChange((e) => {
         this.light2.color = new THREE.Color(e);
       });
 
-      dirLight.add(this.options, 'directionalIntensity', 0, 1).onChange((e) => {
-        this.light2.intensity = e;
+      pointLight.add(this.options, 'pointIntensityLeft', 0, 1).onChange((e) => {
+        this.light2l.intensity = e;
       });
 
-
-      if (this.usePointLight || this.useRectLight) {
-        var pointLight;
-
-        if (this.usePointLight) {
-          pointLight = gui.addFolder('Point Light');
-        }
-
-        if (this.useRectLight) {
-          pointLight = gui.addFolder('Rect Light');
-        }
-
-        pointLight.addColor(this.options, 'pointColorLeft').onChange((e) => {
-          this.light2.color = new THREE.Color(e);
-        });
-
-        pointLight.add(this.options, 'pointIntensityLeft', 0, 1).onChange((e) => {
-          this.light2l.intensity = e;
-        });
-
-        pointLight.addColor(this.options, 'pointColorRight').onChange((e) => {
-          this.light2.color = new THREE.Color(e);
-        });
-
-        pointLight.add(this.options, 'pointIntensityRight', 0, 1).onChange((e) => {
-          this.light2r.intensity = e;
-        });
-      }
-
-      var hemiLight = gui.addFolder('Hemisphere Light');
-      hemiLight.addColor(this.options, 'skyColor').onChange((e) => {
-        this.light3.skyColor = new THREE.Color(e);
+      pointLight.addColor(this.options, 'pointColorRight').onChange((e) => {
+        this.light2.color = new THREE.Color(e);
       });
 
-      hemiLight.addColor(this.options, 'groundColor').onChange((e) => {
-        this.light3.groundColor = new THREE.Color(e);
+      pointLight.add(this.options, 'pointIntensityRight', 0, 1).onChange((e) => {
+        this.light2r.intensity = e;
       });
-
-
-      var cam = gui.addFolder('Camera');
-      cam.add(this.defaultCamera.position, 'x', 0, this.maxSize).listen();
-      cam.add(this.defaultCamera.position, 'y', 0, this.maxSize).listen();
-      cam.add(this.defaultCamera.position, 'z', 0, this.maxSize).listen();
-
-      gui.close();
-
-      var guiInner = $('<div>', {id: 'guiInner'});
-      var guiOuter = $('<div>', {id: 'guiOuter'});
-
-      guiInner.append(gui.domElement);
-      guiOuter.append(guiInner);
-      $(this.container).append(guiOuter);
     }
+
+    var hemiLight = gui.addFolder('Hemisphere Light');
+    hemiLight.addColor(this.options, 'skyColor').onChange((e) => {
+      this.light3.skyColor = new THREE.Color(e);
+    });
+
+    hemiLight.addColor(this.options, 'groundColor').onChange((e) => {
+      this.light3.groundColor = new THREE.Color(e);
+    });
+
+
+    var cam = gui.addFolder('Camera');
+    cam.add(this.defaultCamera.position, 'x', 0, this.maxSize).listen();
+    cam.add(this.defaultCamera.position, 'y', 0, this.maxSize).listen();
+    cam.add(this.defaultCamera.position, 'z', 0, this.maxSize).listen();
+
+    gui.close();
+    
+    var guiInner = $('<div>', {id: 'guiInner'});
+    var guiOuter = $('<div>', {id: 'guiOuter'});
+    if (!inControl.use3DGUIConfig) {
+      $(guiOuter).hide();
+    }
+
+    guiInner.append(gui.domElement);
+    guiOuter.append(guiInner);
+    $(this.container).append(guiOuter);
+  
   }
 
 
