@@ -1770,39 +1770,49 @@ class Hadron {
         contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(req_params),
         context: this,
-        success: function(response){
-            
-          var json_obj = this.processBbotResponse(response);
-
-          if (response.tts) {
-            this.ttsURIToCall = response.tts.url 
-          } 
-         
-          if (this.isACTRRunning() == true) {
-            window.inAvatar.processACTR(response.actr || false);
-            window.inAvatar.processMessages(json_obj.messages || false);
-          }
-
-           
-           if (this.ttsEnabled == true && this.useLocalTTS == true) {
-              this.localTTS(json_obj.bot_said || "");
-          }
-
-          // Do not reset the tts var is actr is running, it needs it.
-          if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
-            this.ttsURIToCall = null;
-          }
-
-          // Do not speak if actr is running, it will do it.
-          if (this.ttsURIToCall && this.isACTRRunning() == false) {
-            this.handleTTS(this.ttsURIToCall, null, null, 500);
-          }
-
-          this.processResponse(json_obj.messages, json_obj.cards, response);
-
-          callback(json_obj.messages, json_obj.cards);
-    }});
+        success: function(response) {
+          this.ajaxResponse(response, callback)  
+          
+        },
+        error: function(jqXHR, textStatus, errorThrown) { 
+          console.log("HTTP Code: " + textStatus + " - error: " + errorThrown)
+          this.ajaxResponse(jqXHR.responseJSON, callback)          
+        }    
+    })
   }
+
+  ajaxResponse(response, callback) {
+    var json_obj = this.processBbotResponse(response);
+
+    if (response.tts) {
+      this.ttsURIToCall = response.tts.url 
+    } 
+    
+    if (this.isACTRRunning() == true) {
+      window.inAvatar.processACTR(response.actr || false);
+      window.inAvatar.processMessages(json_obj.messages || false);
+    }
+
+      
+      if (this.ttsEnabled == true && this.useLocalTTS == true) {
+        this.localTTS(json_obj.bot_said || "");
+    }
+
+    // Do not reset the tts var is actr is running, it needs it.
+    if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
+      this.ttsURIToCall = null;
+    }
+
+    // Do not speak if actr is running, it will do it.
+    if (this.ttsURIToCall && this.isACTRRunning() == false) {
+      this.handleTTS(this.ttsURIToCall, null, null, 500);
+    }
+
+    this.processResponse(json_obj.messages, json_obj.cards, response);
+
+    callback(json_obj.messages, json_obj.cards);
+  }
+
 
     //convert legacy protocol to bbot protocol
     
