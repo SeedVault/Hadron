@@ -714,11 +714,12 @@ class Hadron {
         recoIcon = $('<img>', {id: 'quark-reco-icon', class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
         recoIcon.click(() => {
           if (this.recoVisible) {
-            if ($(this).hasClass('quark-reco-button-on')) {
+            if (this.recoEnabled) {
               // A click absolutely disables reco.
               this.returnToReco = false;
 
               this.stopReco();
+              this.showToast('I\'m no longer listening.');
             } else {
               this.startReco(true);
             }
@@ -1037,14 +1038,13 @@ class Hadron {
         this.consoleLog(error.message);
       });
 
-      if (this.recoObject.recognizingSupported == false) {
+      if(this.recoObject.recognizingSupported()){
+        // Artyom can process commands  @TODO move this to initialization and show icon based on this
+      }else{
+        // This browser doesn't support webkitSpeechRecognition
         this.recoEnabled = false;
-        return;
+        return
       }
-    }
-
-    if (showToast) {
-      this.showToast('I\'m listening.');
     }
 
     this.recoEnabled = true;
@@ -1059,55 +1059,61 @@ class Hadron {
     $('#quark-reco-icon').removeClass('quark-reco-button-off');
     $('#quark-reco-icon').addClass('quark-reco-button-on');
 
-    
+    /* @TODO ?? this is not needed here. commenting for now
     this.recoObject.initialize({
       lang: "en-US",
-      debug: false, // Show what recognizes in the Console
+      debug: true, // Show what recognizes in the Console
       listen: true, // Start listening after this
       speed: 0.9, // Talk a little bit slow
       mode: "normal", // This parameter is not required as it will be normal by default
       continuous: true//,
       //name: "Jarvis"
     });
-
-    var settings = {
-      continuous:true, // Don't stop never because i have https connection
-      onResult:(interimText, temporalText) => {
-        var isFinal = false;
-        if (temporalText != "") {
-          isFinal = true;
-        }
-
-        this.consoleLog("interimText: " + interimText);
-        this.consoleLog("temporalText:" + temporalText);
-        this.consoleLog("isFinal:" + isFinal);
-
-        if (!isFinal) {
-          this.inputText.val(interimText);
-        } else {
-          if (this.recoObject != false) {
-            this.recoInput(temporalText);
+    */
+    
+    if (!this.userDictation) {
+      var settings = {
+        continuous:true, // Don't stop never because i have https connection
+        onResult:(interimText, temporalText) => {
+          var isFinal = false;
+          if (temporalText != "") {
+            isFinal = true;
           }
 
-          var wasEnabled = this.recoEnabled
-          this.stopReco();            
-          if (wasEnabled && this.recoContinuous && this.returnToReco) {//stop/start to reset it
-            this.startReco();
-          }
-        }
-      },
-      onStart:function(){
-          //console.log("Dictation started by the user");
-      },
-      onEnd:function(){
-          //alert("Dictation stopped by the user");
-      }
-    };
+          this.consoleLog("interimText: " + interimText);
+          this.consoleLog("temporalText:" + temporalText);
+          this.consoleLog("isFinal:" + isFinal);
 
-    this.userDictation = this.recoObject.newDictation(settings);
+          if (!isFinal) {
+            this.inputText.val(interimText);
+          } else {
+            if (this.recoObject != false) {
+              this.recoInput(temporalText);
+            }
+
+            var wasEnabled = this.recoEnabled
+            this.stopReco();            
+            if (wasEnabled && this.recoContinuous && this.returnToReco) {//stop/start to reset it
+              this.startReco();
+            }
+          }
+        },
+        onStart:function(){
+            console.log("Dictation started by the user");
+        },
+        onEnd:function(){
+            console.log("Dictation stopped by the user");
+        }
+      };
+
+      this.userDictation = this.recoObject.newDictation(settings);
+    } 
     this.userDictation.start();
+    if (showToast) {
+      this.showToast('I\'m listening.');
+    }
+
     console.log('start listening')
-    console.trace()
   
   }
 
@@ -1122,7 +1128,7 @@ class Hadron {
 
       if (this.userDictation) {
         this.userDictation.stop();
-        this.userDictation = false;
+        //this.userDictation = false;
       }
     }
   }
@@ -1181,6 +1187,7 @@ class Hadron {
       this.showToast('I am no longer listening.');
 
       this.inputText.val('');
+      this.returnToReco = false; 
       this.stopReco();
       return true;
     }
@@ -1374,6 +1381,7 @@ class Hadron {
 
     if (botSaid.includes("HADRONSTOPVOICERECO")) {
       botSaid = botSaid.replace("HADRONSTOPVOICERECO", "");
+      this.returnToReco = false;
       this.stopReco();
     }
 
