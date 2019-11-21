@@ -138,6 +138,7 @@ class Hadron {
       this.use3DAvatar        = this.getControlData("bot-uses-3d-avatar", false, "bool");
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
       this.use3DGUIConfig     = this.getControlData("bot-uses-3d-gui-config", false, "bool");
+      this.use3DAvatarOnload  = this.getControlData("bot-uses-3d-avatar-onload", false, "bool");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.trackAnonymousUserId = this.getControlData("bot-track-anonymous-user-id", false, "bool");
@@ -211,6 +212,7 @@ class Hadron {
       this.checkDeviceCapabilites();
       this.priorityInitialization();
       this.loadPrerequsites();
+      
   	}
         
     //Returns a new anonymous user id
@@ -264,9 +266,17 @@ class Hadron {
     }
 
     // This gets the process started based on the config values.
-    runControl() {
+    async runControl() {
       console.log('data from launcher: ', window.xprops)
+      console.log(1)
       this.initializeChatWindow();
+      if (this.use3DAvatarOnload) {
+        console.log(1.5)
+        await this.startAvatar()
+        console.log(2)
+      }      
+      this.initializeVolley()
+      console.log(3)
     }
 
     // Do some pre-run tests.
@@ -522,52 +532,55 @@ class Hadron {
         }
 
         this.quarkWrap.append(this.quarkTyping);
-
-        if (this.hideInput == false) {
-          this.typeInput();
-          this.textAreaEnabled(false);
-        }
-
-        if (this.chrome != false) {
-          this.chrome.css({ opacity: 1.0 });
-          this.chrome.fadeTo(0.25, 1.0);
-        }
-
-        this.fullyLoaded = true;
-
-        // This may be a bad idea. This isn't firing, it isn't correct JEM
-        //$(this.quarkWrap).on( "DOMMouseScroll", function( event ) {
-          //event.preventDefault();
-        //  event.stopPropagation();
-        //  this.consoleLog('gulp DOMMouseScroll');
-        //});
-
-        // This changes nothing at all so far... Wasted effort
-        //$(document).on( "mousewheel", function( event ) {
-          //event.preventDefault();
-        //  event.stopPropagation();
-        //  this.consoleLog('gulp mousewheel');
-        //});
-
-
-        this.mediaView(this.mediaViewEnabled);
-
-        this.refreshContol(false);
-
-        // recall previous interactions
-        if (this.recallInteractions) {
-          var messages = [];
-          var buttons = [];
-          var messageObject;
-          for (var i = 0; i < this.interactionsHistory.length; i++) {
-            messageObject = { message: this.interactionsHistory[i].say, unadorned: false};
-            messages.push(messageObject);
-          }
-          // This isn't quite right.  It doesn't align properly and should be made a different color so you can tell it's older text.
-          var conv = { ice: { says: messages, reply: buttons.reverse() } };
-          this.talk(conv);
-        }
+        
       }
+    }
+
+    initializeVolley() {
+      if (this.hideInput == false) {
+        this.typeInput();
+        this.textAreaEnabled(false);
+      }
+
+      if (this.chrome != false) {
+        this.chrome.css({ opacity: 1.0 });
+        this.chrome.fadeTo(0.25, 1.0);
+      }
+
+      this.fullyLoaded = true;
+
+      // This may be a bad idea. This isn't firing, it isn't correct JEM
+      //$(this.quarkWrap).on( "DOMMouseScroll", function( event ) {
+        //event.preventDefault();
+      //  event.stopPropagation();
+      //  this.consoleLog('gulp DOMMouseScroll');
+      //});
+
+      // This changes nothing at all so far... Wasted effort
+      //$(document).on( "mousewheel", function( event ) {
+        //event.preventDefault();
+      //  event.stopPropagation();
+      //  this.consoleLog('gulp mousewheel');
+      //});
+
+
+      this.mediaView(this.mediaViewEnabled);
+
+      this.refreshContol(false);
+
+      // recall previous interactions
+      if (this.recallInteractions) {
+        var messages = [];
+        var buttons = [];
+        var messageObject;
+        for (var i = 0; i < this.interactionsHistory.length; i++) {
+          messageObject = { message: this.interactionsHistory[i].say, unadorned: false};
+          messages.push(messageObject);
+        }
+        // This isn't quite right.  It doesn't align properly and should be made a different color so you can tell it's older text.
+        var conv = { ice: { says: messages, reply: buttons.reverse() } };
+        this.talk(conv);
+      }    
     }
 
     refreshContolInner(userRequested) {
@@ -591,7 +604,7 @@ class Hadron {
 
     // Reloads the control. Respects botTalksFirst flag
     refreshContol(userRequested) {
-      this.mediaView(false);
+      //this.mediaView(false);
 
       this.quarkWrap.html('');
       this.quarkWrap.append(this.quarkTyping);
@@ -976,28 +989,7 @@ class Hadron {
 
         return true;
       } else if (userSaid == "!!actr") {
-        if (this.use3DAvatar == false || this.hasWebGL == false) {
-          msg = [];
-          msg.push('Cannot run');
-          msg.push('Is avatar var defined: ' + this.boolToString(this.use3DAvatar));
-          msg.push('Has WebGL: ' + this.boolToString(this.hasWebGL));
-          convo = { ice: { says: msg, reply: [] } };
-
-          setTimeout(() => {
-            this.talk(convo);
-          }, 1000);
-
-          return true;
-        }
-
-        if (window.inAvatar == false) {
-          import(/* webpackChunkName: "hadronavatar" */ './hadron.avatar.js').then((avatar) => {            
-            window.inAvatar = new avatar.HadronAvatar("inAvatar");
-            console.log(param)
-            window.inAvatar.checkACTRInput(param);
-          })//.catch(error => 'An error occurred while loading the component');          
-        }
-
+        this.startAvatar(param)
         return true        
 
       } else if (userSaid == "!!stopactr") {
@@ -1008,6 +1000,30 @@ class Hadron {
 
       return false;
     }
+  }
+
+  startAvatar(avatarParam) {
+    return new Promise(async(resolve, reject) => {
+      if (this.use3DAvatar == false || this.hasWebGL == false) {
+        msg = [];
+        msg.push('Cannot run');
+        msg.push('Is avatar var defined: ' + this.boolToString(this.use3DAvatar));
+        msg.push('Has WebGL: ' + this.boolToString(this.hasWebGL));
+        convo = { ice: { says: msg, reply: [] } };
+
+        setTimeout(() => {
+          this.talk(convo);
+        }, 1000);      
+      }
+      
+      if (window.inAvatar == false) {
+        let avatar = await import(/* webpackChunkName: "hadronavatar" */ './hadron.avatar.js')
+        window.inAvatar = new avatar.HadronAvatar("inAvatar");
+        console.log(avatarParam)
+        await window.inAvatar.checkACTRInput(avatarParam);            
+      }
+      resolve()
+    })
   }
 
 
@@ -2626,12 +2642,4 @@ window.onload = function() {
   } else if (window.webkitAudioContext) {
     inControl.context = new window.webkitAudioContext();
   }
-
-  function receiveMessage(e) {
-    if (e.data == "refreshHadron") {
-      inControl.refreshContol();
-    }
-  }
-
-  window.addEventListener('message', receiveMessage);
 };

@@ -174,7 +174,7 @@ export class HadronAvatar {
 
   // Load threejs, showing progress
   // Show media View
-  startAvatar(avatarDefinition) {
+  async startAvatar(avatarDefinition) {
     this.rendererIsStable = false;
 
     this.groundPlanePosition = avatarDefinition.groundPlanePosition; // | this.groundPlanePosition;
@@ -236,10 +236,10 @@ export class HadronAvatar {
 
       $('.quark-media-overlay').append(this.sid);
       
-      this.startAvatar2();
+      await this.startAvatar2();
       
     } else {
-      this.startAvatar2();
+      await this.startAvatar2();
     }
   }
 
@@ -405,7 +405,7 @@ export class HadronAvatar {
   }
 
 
-  createTextPanel() {
+  createTextPanel() {console.log('CREATETEXTPANEL')
     if (inControl.use3DTextPanel == true) {
       this.textPanel = $('<div>', {class: 'hadronAvatarTextPanel'});
       this.textPanelContent = $('<div>', {class: 'hadronAvatarTextPanelContent'});
@@ -735,156 +735,160 @@ export class HadronAvatar {
   // load some avatar.
   // pass path to a remote resource to override the default avatar
   startAvatar2() {
-    if (!this.isWebGLAvailable()) {      
-      inControl.showToast('WebGL not supported!');
-    }
-
-    // This feels like a config var but can't be since THREE isn't loaded when the config is created.  Must be here.
-    if (this.backfaceMaterial == "THREE.DoubleSide") {
-      this.backfaceMaterial = THREE.DoubleSide;
-    } else {
-      this.backfaceMaterial = THREE.FrontSide;
-    }
-
-    this.clock = new THREE.Clock();
-
-    this.createRenderer();
-
-    this.initialSettings();
-
-    // Create the scene
-    this.createScene();
-
-    this.cameraOveridden = false;
-
-    if (this.isRandomCamera == false) {
-      this.createCamera();
-    } else {
-      this.createRandomCamera();
-    }
-
-    this.createControls();
-
-    // Load the cubemap if Enabled
-    this.createCubemap();
-
-    // model loader
-    var manager = new THREE.LoadingManager();
-
-		manager.onProgress = function (item, loaded, total) {
-			inControl.consoleLog(item, loaded, total);
-		};
-
-    var loader;
-
-    if (this.loaderTargetFormat == "glb") {
-		  loader = new GLTFLoader();
-    } else {
-      loader = new FBXLoader();
-    }
-
-    loader.setCrossOrigin('');
-
-    // test for https, if not we build a local link like always.
-    var fullPathToTargetModel = Config.all_your_bases_are_belong_to_us + "assets/avatars/" + this.loaderTarget;
-
-    if (this.loaderTarget.includes('https:') || this.loaderTarget.includes('http:')) {
-      fullPathToTargetModel = this.loaderTarget;
-    }
-
-		loader.load(fullPathToTargetModel, (object) => {console.log(object)
-      if (this.loaderTargetFormat == "glb") {
-        this.model = object.scene || object.scenes[0];
-      } else {
-        this.model = object;
+    return new Promise((resolve, reject) => {
+      if (!this.isWebGLAvailable()) {      
+        inControl.showToast('WebGL not supported!');
       }
 
-      this.clips = object.animations || [];
+      // This feels like a config var but can't be since THREE isn't loaded when the config is created.  Must be here.
+      if (this.backfaceMaterial == "THREE.DoubleSide") {
+        this.backfaceMaterial = THREE.DoubleSide;
+      } else {
+        this.backfaceMaterial = THREE.FrontSide;
+      }
 
-      var beta = 0.0;
-      var specularColor = new THREE.Color( beta * 0.2, beta * 0.2, beta * 0.2 );
+      this.clock = new THREE.Clock();
 
-      var alpha = 0.0;
-      var specularShininess = Math.pow( 2, alpha * 10 );
+      this.createRenderer();
 
-      this.outlineTargets = [];
+      this.initialSettings();
 
-      this.model.traverse((child) => {
-        if (child.isCamera && this.copyCamera == true) {
-          console.log("Switched to avatar camera");
+      // Create the scene
+      this.createScene();
 
-          this.cameraOveridden = true;
+      this.cameraOveridden = false;
 
-          this.defaultCamera.copy(child);
-          this.defaultCamera.aspect = this.container.width() / this.container.height();
+      if (this.isRandomCamera == false) {
+        this.createCamera();
+      } else {
+        this.createRandomCamera();
+      }
 
-          this.defaultCamera.updateProjectionMatrix();
+      this.createControls();
+
+      // Load the cubemap if Enabled
+      this.createCubemap();
+
+      // model loader
+      var manager = new THREE.LoadingManager();
+
+      manager.onProgress = function (item, loaded, total) {
+        inControl.consoleLog(item, loaded, total);
+      };
+
+      var loader;
+
+      if (this.loaderTargetFormat == "glb") {
+        loader = new GLTFLoader();
+      } else {
+        loader = new FBXLoader();
+      }
+
+      loader.setCrossOrigin('');
+
+      // test for https, if not we build a local link like always.
+      var fullPathToTargetModel = Config.all_your_bases_are_belong_to_us + "assets/avatars/" + this.loaderTarget;
+
+      if (this.loaderTarget.includes('https:') || this.loaderTarget.includes('http:')) {
+        fullPathToTargetModel = this.loaderTarget;
+      }
+
+      loader.load(fullPathToTargetModel, (object) => {console.log(object)
+        if (this.loaderTargetFormat == "glb") {
+          this.model = object.scene || object.scenes[0];
+        } else {
+          this.model = object;
         }
 
-  		if (child.isMesh) {
+        this.clips = object.animations || [];
 
-          this.meshes[child.name] = child
+        var beta = 0.0;
+        var specularColor = new THREE.Color( beta * 0.2, beta * 0.2, beta * 0.2 );
 
-          child.material.side = this.backfaceMaterial;
-          child.material.wireframe = this.showWireframe;
-          this.outlineTargets.push(child);
+        var alpha = 0.0;
+        var specularShininess = Math.pow( 2, alpha * 10 );
 
-          if (this.options.useToonMaterial == true) {
-            child.material.roughness = 1.0;
-          } else if (this.renderAs == 'pbr') {
-            child.material.roughness = 0.0;
+        this.outlineTargets = [];
+
+        this.model.traverse((child) => {
+          if (child.isCamera && this.copyCamera == true) {
+            console.log("Switched to avatar camera");
+
+            this.cameraOveridden = true;
+
+            this.defaultCamera.copy(child);
+            this.defaultCamera.aspect = this.container.width() / this.container.height();
+
+            this.defaultCamera.updateProjectionMatrix();
           }
 
+        if (child.isMesh) {
 
-          if (this.useCubeMap && this.options.useEnvMap == true) {
-            if (this.envMap) {
-              child.material.envMap = this.envMap;
+            this.meshes[child.name] = child
+
+            child.material.side = this.backfaceMaterial;
+            child.material.wireframe = this.showWireframe;
+            this.outlineTargets.push(child);
+
+            if (this.options.useToonMaterial == true) {
+              child.material.roughness = 1.0;
+            } else if (this.renderAs == 'pbr') {
+              child.material.roughness = 0.0;
+            }
+
+
+            if (this.useCubeMap && this.options.useEnvMap == true) {
+              if (this.envMap) {
+                child.material.envMap = this.envMap;
+              }
+            }
+
+            if (this.useShadows == false) {
+              child.castShadow = true;
+              child.receiveShadow = true;
             }
           }
+        });
 
-          if (this.useShadows == false) {
-  				  child.castShadow = true;
-  				  child.receiveShadow = true;
-          }
-  			}
-  		});
+        this.scene.add(this.model);
 
-      this.scene.add(this.model);
+        this.setViewForModel(this.model);
 
-      this.setViewForModel(this.model);
+        this.createGroundplane();
 
-      this.createGroundplane();
+        this.createLighting();
 
-      this.createLighting();
+        this.createEffects();
 
-      this.createEffects();
+        this.createGUI();
 
-      this.createGUI();
+        this.createTextPanel();
+        this.initialGreeting();
 
-      this.createTextPanel();
-      this.initialGreeting();
+        this.rendererIsStable = true;
 
-      this.rendererIsStable = true;
+        if (inControl.ttsEnabled == false && inControl.ttsVisible == true) {
+          inControl.showToast('Please press the speaker icon to allow the avatar to talk');
+        }
 
-      if (inControl.ttsEnabled == false && inControl.ttsVisible == true) {
-        inControl.showToast('Please press the speaker icon to allow the avatar to talk');
-      }
-
-      // Chain animation loading?
-      this.mixer = new THREE.AnimationMixer(this.model);
-      this.enumerateAnimations();
+        // Chain animation loading?
+        this.mixer = new THREE.AnimationMixer(this.model);
+        this.enumerateAnimations();
 
 
-      this.setDefaultCameraPosition()
+        this.setDefaultCameraPosition()
 
-      this.render();
-		}, undefined, function (e) {
-      inControl.consoleLog(e);
-    });
+        this.render();                
+        resolve()
 
-    this.createStats();
+      }, undefined, function (e) {
+        inControl.consoleLog(e);
+        reject()
+      })
+      this.createStats();
+      this.animate();
 
-    this.animate();
+    })
   }
 
   isWebGLAvailable() {
@@ -1534,7 +1538,7 @@ export class HadronAvatar {
   }
 
 
-  checkACTRInput(param) {
+  async checkACTRInput(param) {
     var avatarDefinition = {};
 
     avatarDefinition.avatarAnimations = []
@@ -1650,9 +1654,8 @@ export class HadronAvatar {
 
     }
 
-    this.startAvatar(avatarDefinition);
+    await this.startAvatar(avatarDefinition);
 
-    return true;
   }
 }
 
