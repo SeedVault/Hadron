@@ -139,6 +139,12 @@ class Hadron {
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
       this.use3DGUIConfig     = this.getControlData("bot-uses-3d-gui-config", false, "bool");
       this.use3DAvatarOnload  = this.getControlData("bot-uses-3d-avatar-onload", false, "bool");
+      this.use3DAvatarCamPosX  = this.getControlData("bot-uses-3d-avatar-cam-pos-x", null, "float");            
+      this.use3DAvatarCamPosY  = this.getControlData("bot-uses-3d-avatar-cam-pos-y", null, "float");
+      this.use3DAvatarCamPosZ  = this.getControlData("bot-uses-3d-avatar-cam-pos-z", null, "float");
+      this.use3DAvatarCamTargetPosX  = this.getControlData("bot-uses-3d-avatar-cam-target-pos-x", null, "float");
+      this.use3DAvatarCamTargetPosY  = this.getControlData("bot-uses-3d-avatar-cam-target-pos-y", null, "float");
+      this.use3DAvatarCamTargetPosZ  = this.getControlData("bot-uses-3d-avatar-cam-target-pos-z", null, "float");
 
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.trackAnonymousUserId = this.getControlData("bot-track-anonymous-user-id", false, "bool");
@@ -303,7 +309,7 @@ class Hadron {
     }
 
     // Reads data elements from a control, applies a format and tests.
-    getControlData(field, defaultValue = false, dataType = "string") {
+    getControlData(field, defaultValue = null, dataType = "string") {
       
       let fieldcc = this.toCamelCase(field)
       var foundData = window.xprops[fieldcc] //getting config thanks to zoid
@@ -313,9 +319,17 @@ class Hadron {
           foundData = defaultValue;                            
       } 
 
-      if (dataType == "bool") {
-        foundData = this.checkBoolean(foundData);
-      }      
+      if (foundData !== null) {
+        if (dataType == "bool") {
+          foundData = this.checkBoolean(foundData);
+        }      
+        if (dataType == "float") {
+          foundData = parseFloat(foundData)
+        }
+        if (dataType == "int") {
+          foundData = parseInt(foundData)
+        }
+      }
       return  foundData;
     }
 

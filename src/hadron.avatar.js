@@ -195,10 +195,13 @@ export class HadronAvatar {
 
     this.avatarAnimations = avatarDefinition.avatarAnimations || []
 
-    this.avatarDefaultCameraPositionX = avatarDefinition.defaultCameraPositionX
-    this.avatarDefaultCameraPositionY = avatarDefinition.defaultCameraPositionY
-    this.avatarDefaultCameraPositionZ = avatarDefinition.defaultCameraPositionZ
-      
+    this.avatarDefaultCameraPositionX = window.inControl.use3DAvatarCamPosX !== null ? window.inControl.use3DAvatarCamPosX : avatarDefinition.defaultCameraPositionX
+    this.avatarDefaultCameraPositionY = window.inControl.use3DAvatarCamPosY !== null ? window.inControl.use3DAvatarCamPosY : avatarDefinition.defaultCameraPositionY
+    this.avatarDefaultCameraPositionZ = window.inControl.use3DAvatarCamPosZ !== null ? window.inControl.use3DAvatarCamPosZ : avatarDefinition.defaultCameraPositionZ
+
+    this.avatarDefaultCameraLookAtX = window.inControl.use3DAvatarCamTargetPosX !== null ? window.inControl.use3DAvatarCamTargetPosX : avatarDefinition.defaultCameraLookAtX
+    this.avatarDefaultCameraLookAtY = window.inControl.use3DAvatarCamTargetPosY !== null ? window.inControl.use3DAvatarCamTargetPosY : avatarDefinition.defaultCameraLookAtY
+    this.avatarDefaultCameraLookAtZ = window.inControl.use3DAvatarCamTargetPosZ !== null ? window.inControl.use3DAvatarCamTargetPosZ : avatarDefinition.defaultCameraLookAtZ
     
     this.acknowledgeAnimationAction = false;
     this.initialAnimationAction = false;
@@ -636,7 +639,7 @@ export class HadronAvatar {
 
     this.maxSize = size;
 
-    if (this.cameraOveridden == false) {
+    if (this.cameraOveridden == false) {console.log('camera not overriden')
       model.position.x += (model.position.x - center.x);
       model.position.y += (model.position.y - center.y);
       model.position.z += (model.position.z - center.z);
@@ -652,15 +655,14 @@ export class HadronAvatar {
       this.defaultCamera.position.x += size / 2.0;
       this.defaultCamera.position.y += size / 5.0;
       this.defaultCamera.position.z += size * 2.0;
-
+    
       this.defaultCamera.lookAt(center);
-    } else {
+    } else {console.log('Camera overriden')
       model.position.x = (model.position.x - center.x);
       model.position.y = (model.position.y - center.y);
       model.position.z = (model.position.z - center.z);
 
-      this.defaultCamera.position.x = 0;
-      this.defaultCamera.position.y = 0;
+      this.setDefaultCameraPosition()
     }
   }
 
@@ -756,7 +758,7 @@ export class HadronAvatar {
       // Create the scene
       this.createScene();
 
-      this.cameraOveridden = false;
+      this.cameraOveridden = true;
 
       if (this.isRandomCamera == false) {
         this.createCamera();
@@ -875,9 +877,6 @@ export class HadronAvatar {
         this.mixer = new THREE.AnimationMixer(this.model);
         this.enumerateAnimations();
 
-
-        this.setDefaultCameraPosition()
-
         this.render();                
         resolve()
 
@@ -901,9 +900,18 @@ export class HadronAvatar {
   }
 
   setDefaultCameraPosition() {    
-    if ( this.avatarDefaultCameraPositionX) {
+    if (this.avatarDefaultCameraPositionX !== null) {
       this.defaultCamera.position.set(this.avatarDefaultCameraPositionX, this.avatarDefaultCameraPositionY, this.avatarDefaultCameraPositionZ)
+      console.log('default camera position', this.defaultCamera.position)
+      this.controls.update()
     }   
+    if (this.avatarDefaultCameraLookAtX !== null) {            
+      this.controls.target = new THREE.Vector3(this.avatarDefaultCameraLookAtX, 
+                                                this.avatarDefaultCameraLookAtY, 
+                                                this.avatarDefaultCameraLookAtZ)
+      console.log('camera target', this.controls.target)
+      this.controls.update()
+    }
   }
 
   enumerateAnimations() {
@@ -1651,6 +1659,10 @@ export class HadronAvatar {
       avatarDefinition.defaultCameraPositionX = 15
       avatarDefinition.defaultCameraPositionY = 70
       avatarDefinition.defaultCameraPositionZ = 220
+
+      avatarDefinition.defaultCameraLookAtX = null
+      avatarDefinition.defaultCameraLookAtY = null
+      avatarDefinition.defaultCameraLookAtZ = null   
 
     }
 
