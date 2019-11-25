@@ -126,7 +126,7 @@ class Hadron {
       this.botResetOnLoad     = this.getControlData("bot-reset-on-load", false, "bool");
       
       this.ttsVisible         = this.getControlData("bot-tts-visible", true, "bool");
-      this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");
+      this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");      
       this.useLocalTTS        = this.getControlData("bot-local-tts", false, "bool");
       this.ttsVoiceId         = this.getControlData("bot-tts-voice-id", 0)
 
@@ -273,16 +273,12 @@ class Hadron {
 
     // This gets the process started based on the config values.
     async runControl() {
-      console.log('data from launcher: ', window.xprops)
-      console.log(1)
+      console.log('data from launcher: ', window.xprops)      
       this.initializeChatWindow();
-      if (this.use3DAvatarOnload) {
-        console.log(1.5)
-        await this.startAvatar()
-        console.log(2)
+      if (this.use3DAvatarOnload) {        
+        await this.startAvatar()        
       }      
-      this.initializeVolley()
-      console.log(3)
+      this.initializeVolley()      
     }
 
     // Do some pre-run tests.
@@ -773,22 +769,13 @@ class Hadron {
         this.ttsIcon = $('<img>', {class: imageClass, src: 'data:image/png;base64,R0lGODlhFAAUAIAAAP///wAAACH5BAEAAAAALAAAAAAUABQAAAIRhI+py+0Po5y02ouz3rz7rxUAOw=='});
 
         this.ttsIcon.click(() => {
-          if (this.soundObject) {
-            this.soundObject.muted = false;
-          } else {
-            this.playAudio('/assets/audio/500-milliseconds-of-silence.mp3');
-          }
-
-          /*
-          this.context.resume().then(() => {
-            console.log('Playback resumed successfully');
-          });
-*/
-          if (this.ttsVisible) {
-            this.changeTTSState(!this.ttsEnabled);
-          }
-
+          this.ttsEnable(!this.ttsEnabled)
           this.inputText.focus();
+
+          //check if there is an audio not played because browser didnt let to. we will play it now.
+          if (this.ttsEnabled && this.lastAjaxResponse) {          
+            this.playAudioResponse(this.lastAjaxResponse, this.lastAjaxResponseACTR)
+          }          
         });
 
         ttsContainer.append(this.ttsIcon);
@@ -873,6 +860,23 @@ class Hadron {
       }
 
       this.inputText.focus();
+  }
+
+  ttsEnable(flag) {
+    if (this.soundObject) {
+      this.soundObject.muted = false;
+    } else {      
+      this.playAudio('/assets/audio/500-milliseconds-of-silence.mp3');      
+    }
+
+    /*
+    this.context.resume().then(() => {
+      console.log('Playback resumed successfully');
+    });
+    */
+    if (this.ttsVisible) {
+      this.changeTTSState(flag);
+    }    
   }
 
   avatarState(state) {
@@ -1650,20 +1654,26 @@ class Hadron {
   }
 
   // Make a call to BBot to do the TTS.  Could also speak locally in some cases but this allows for a custom voice.
-  handleTTS(url, startCallback, endCallback, delay) {
+  handleTTS(url, startCallback, endCallback, delay) {    
     if (url == false || this.ttsEnabled == false) {
       if (startCallback) {
         startCallback();
       }
       return;
     }
-
     this.stopReco();
-
-    setTimeout(() => {
-      this.playAudio(url, startCallback, endCallback);
-    }, delay || 0)
-
+    var p = this.playAudio(url, startCallback, endCallback, delay)          
+    p.then((e) => {
+        //successful playback        
+        this.lastAjaxResponse = null //all done. clear this
+        this.lastAjaxResponseACTR = null
+      }).catch((e) => {
+        console.log('Play error', e)
+        //this might be because th browser dont let autoplay         
+        this.ttsEnable(false) //set to false then the user will enable it        
+        this.showToast('Click on speaker icon to enable audio.')        
+      })
+      return p
   }
 
 
@@ -1683,77 +1693,91 @@ class Hadron {
 
 
   // Plays an audio file and stops an existing audio file.  Used by TTS, make be used by receiving an audio card.
-  playAudio(url, startCallback, endCallback) {
-    this.showConfigState();
-    this.pauseAudio();
+  playAudio(url, startCallback, endCallback, delay) {
+    return new Promise((resolve, reject) => {
 
-  
-    //this method allows to have total control of events
-    var req = new XMLHttpRequest();
-    //req.withCredentials = true;
-    req.crossDomain = true
-    req.open('GET', url, true);
-    req.responseType = 'blob';
+      this.showConfigState();
+      this.pauseAudio();
+
     
-    
-    req.onload = function() {
-      console.log('audio loaded with status ' + this.status )
-       // Onload is triggered even on 404
-       // so we need to check the status code
-      if (this.status === 200) {
-          var audioSrc = URL.createObjectURL(this.response); // IE10+
-          // Video is now downloaded
-          // and we can set it as source on the video element
-          inControl.soundObject = new Audio();
+      //this method allows to have total control of events
+      var req = new XMLHttpRequest();
+      //req.withCredentials = true;
+      req.crossDomain = true
+      req.open('GET', url, true);
+      req.responseType = 'blob';
+      
+      
+      req.onload = function() {
+        console.log('audio loaded with status ' + this.status )
+        // Onload is triggered even on 404
+        // so we need to check the status code
+        if (this.status === 200) {
+            var audioSrc = URL.createObjectURL(this.response); // IE10+
+            // Video is now downloaded
+            // and we can set it as source on the video element
+            inControl.soundObject = new Audio();
 
-          // If it was off, keep it off!
-          // If there is a pause, no voice detected for a few seconds, turn off all reco.
-          // If the user clicks the stop, it stops.
-          // If the user says "stop listening" or something similar, it stops.
-          var pauseEndEvent = () => {
-            console.log('sound ended')
+            // If it was off, keep it off!
+            // If there is a pause, no voice detected for a few seconds, turn off all reco.
+            // If the user clicks the stop, it stops.
+            // If the user says "stop listening" or something similar, it stops.
+            var pauseEndEvent = () => {
+              console.log('sound ended')
 
-            if (inControl.returnToReco == true) {
-              setTimeout(function(){
-                inControl.startReco(false);
-              }, 200);
+              if (inControl.returnToReco == true) {
+                setTimeout(function(){
+                  inControl.startReco(false);
+                }, 200);
+              }
+              if (endCallback) {
+                console.log('playAudio() endCallback')
+                endCallback();
+              }
+              inControl.soundObject.onended = undefined
+              inControl.soundObject.onpause = undefined  
+            };
+            inControl.soundObject.onended = pauseEndEvent
+            inControl.soundObject.onpause = pauseEndEvent
+
+            inControl.soundObject.src = audioSrc;
+            console.log('playing audio')          
+            setTimeout(() => {
+              var playPromise = inControl.soundObject.play()
+              if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    // Autoplay started!
+                    resolve()
+                    if (startCallback) {
+                      startCallback()
+                    }
+                }).catch(error => {
+                    // Autoplay was prevented.                  
+                    console.log(error)
+                    reject(error)
+                });
+              }            
+            }, delay || 0)            
+        } else {
+          console.log('Error on audio playback')
+          if (inControl.returnToReco == true) {
+                setTimeout(function(){
+                  inControl.startReco(false);
+                }, 200);
             }
-            if (endCallback) {
-              console.log('playAudio() endCallback')
-              endCallback();
-            }
-            inControl.soundObject.onended = undefined
-            inControl.soundObject.onpause = undefined  
-          };
-          inControl.soundObject.onended = pauseEndEvent
-          inControl.soundObject.onpause = pauseEndEvent
-
-          inControl.soundObject.src = audioSrc;
-          console.log('playing audio')
-          inControl.soundObject.play()
-
-          if (startCallback) {
-            startCallback()
-          }
-      } else {
-        console.log('Error on audio playback')
-        if (inControl.returnToReco == true) {
-              setTimeout(function(){
-                inControl.startReco(false);
-              }, 200);
-          }
+        }
       }
-    }
-    
-    req.onerror = (e) => {
-        console.log('error on audio playing')
-        console.log(e)
+      
+      req.onerror = (e) => {
+          console.log('error on audio playing')
+          console.log(e)
 
-    }
-    
-    req.send();
-    console.log('start load audio')
+      }
+      
+      req.send();
+      console.log('start load audio')
 
+    })    
   }
 
 
@@ -1819,117 +1843,129 @@ class Hadron {
     })
   }
 
-  ajaxResponse(response, callback) {
+  ajaxResponse(response, callback) {    
+    this.lastAjaxResponse = response //will be used if browser dont let play audio. There will be an exception so this values will be kept stored until it is playback
+
     var json_obj = this.processBbotResponse(response);
 
     if (response.tts) {
       this.ttsURIToCall = response.tts.url 
     } 
     
-    if (this.isACTRRunning() == true) {
-      window.inAvatar.processACTR(response.actr || false);
-      window.inAvatar.processMessages(json_obj.messages || false);
-    }
-
-      
-      if (this.ttsEnabled == true && this.useLocalTTS == true) {
-        this.localTTS(json_obj.bot_said || "");
-    }
-
-    // Do not reset the tts var is actr is running, it needs it.
-    if (this.mediaViewEnabled == true && this.isACTRRunning() == false) {
-      this.ttsURIToCall = null;
-    }
-
-    // Do not speak if actr is running, it will do it.
-    if (this.ttsURIToCall && this.isACTRRunning() == false) {
-      this.handleTTS(this.ttsURIToCall, null, null, 500);
-    }
-
-    this.processResponse(json_obj.messages, json_obj.cards, response);
+    this.showTextResponse(response)
+    this.playAudioResponse(response)
 
     callback(json_obj.messages, json_obj.cards);
   }
 
-
-    //convert legacy protocol to bbot protocol
-    
-    processBbotResponse(bbot_response) {          
-        
-        var messages = [];
-        var cards = [];
-        var buttons = [];
-        var speech_synth = ''
-        bbot_response.output.forEach(function(br, index, array) {
-            //get bbot response type
-            var type = Object.keys(br)[0];
-            
-            if (type == 'text') {
-                messages.push({
-                    'speech': br[type], 
-                    'type': 0
-                });
-            }
-            if (type == 'image') {
-                cards.push({
-                    'contentType': 'application/vnd.microsoft.card.image', 
-                    'content': {
-                        'images': [{
-                                'url': br[type].url
-                            }]
-                    }});
-            }
-            if (type == 'video') {
-                cards.push({
-                    'contentType': 'application/vnd.microsoft.card.video', 
-                    'content': {
-                        'media': [{
-                                'url': br[type].url
-                            }],                      
-                        'image': [{
-                                'url': ''
-                            }]
-                    }});
-            }
-            if (type == 'audio') {
-                cards.push({
-                    'contentType': 'application/vnd.microsoft.card.audio', 
-                    'content': {
-                        'media': [{
-                                'url': br[type].url
-                            }],                      
-                        'image': [{
-                                'url': ''
-                            }]
-                    }});
-            }
-            if (type == 'button') {
-                buttons.push({             
-                            'title': br[type].text,
-                            'value': br[type].postback,
-                            'type':'postback'
-                        }
-                
-               );
-            }
-                            
-        });
-        
-        if (buttons.length) {
-            cards.push({
-                'content': {
-                    'buttons': buttons
-                }
-            });
-        }
-        
-        var json_obj = {
-           'messages': messages,
-           'cards': [cards],              
-        };
-                
-        return json_obj;
+  showTextResponse(response) {
+    var json_obj = this.processBbotResponse(response);
+    if (this.isACTRRunning() == true) {    
+      window.inAvatar.processMessages(json_obj.messages || false);
+    } else {      
+      this.processResponse(json_obj.messages, json_obj.cards, response);
     }
+  }
+
+  playAudioResponse(response) {
+    var json_obj = this.processBbotResponse(response);
+    if (this.isACTRRunning() == true) {
+      window.inAvatar.processACTR(response.actr || false);      
+    } else {
+      if (this.ttsEnabled == true && this.useLocalTTS == true) {
+          this.localTTS(json_obj.bot_said || "");
+      }
+
+      // Do not reset the tts var is actr is running, it needs it.
+      if (this.mediaViewEnabled == true) {
+        this.ttsURIToCall = null;
+      }
+
+      // Do not speak if actr is running, it will do it.
+      if (this.ttsURIToCall && this.isACTRRunning() == false) {
+        this.handleTTS(this.ttsURIToCall, null, null, 500)            
+      }      
+    }        
+  }
+
+
+  //convert legacy protocol to bbot protocol    
+  processBbotResponse(bbot_response) {          
+      
+      var messages = [];
+      var cards = [];
+      var buttons = [];
+      var speech_synth = ''
+      bbot_response.output.forEach(function(br, index, array) {
+          //get bbot response type
+          var type = Object.keys(br)[0];
+          
+          if (type == 'text') {
+              messages.push({
+                  'speech': br[type], 
+                  'type': 0
+              });
+          }
+          if (type == 'image') {
+              cards.push({
+                  'contentType': 'application/vnd.microsoft.card.image', 
+                  'content': {
+                      'images': [{
+                              'url': br[type].url
+                          }]
+                  }});
+          }
+          if (type == 'video') {
+              cards.push({
+                  'contentType': 'application/vnd.microsoft.card.video', 
+                  'content': {
+                      'media': [{
+                              'url': br[type].url
+                          }],                      
+                      'image': [{
+                              'url': ''
+                          }]
+                  }});
+          }
+          if (type == 'audio') {
+              cards.push({
+                  'contentType': 'application/vnd.microsoft.card.audio', 
+                  'content': {
+                      'media': [{
+                              'url': br[type].url
+                          }],                      
+                      'image': [{
+                              'url': ''
+                          }]
+                  }});
+          }
+          if (type == 'button') {
+              buttons.push({             
+                          'title': br[type].text,
+                          'value': br[type].postback,
+                          'type':'postback'
+                      }
+              
+              );
+          }
+                          
+      });
+      
+      if (buttons.length) {
+          cards.push({
+              'content': {
+                  'buttons': buttons
+              }
+          });
+      }
+      
+      var json_obj = {
+          'messages': messages,
+          'cards': [cards],              
+      };
+              
+      return json_obj;
+  }
 
 
 
