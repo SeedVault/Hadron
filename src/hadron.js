@@ -723,7 +723,7 @@ class Hadron {
           if (this.recoEnabled) {
             imageClass = 'quark-reco-button-on';
 
-            this.showToast('I\'m listening.');
+            //this.showToast('I\'m listening.');
 
             // Start reco.
             this.startReco(true);
