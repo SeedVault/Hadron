@@ -1667,6 +1667,7 @@ class Hadron {
         //successful playback        
         this.lastAjaxResponse = null //all done. clear this
         this.lastAjaxResponseACTR = null
+        this.ttsURIToCall = null
       }).catch((e) => {
         console.log('Play error', e)
         //this might be because th browser dont let autoplay         
@@ -1883,7 +1884,7 @@ class Hadron {
 
       // Do not speak if actr is running, it will do it.
       if (this.ttsURIToCall && this.isACTRRunning() == false) {
-        this.handleTTS(this.ttsURIToCall, null, null, 500)            
+        this.handleTTS(this.ttsURIToCall, null, null, 500)                    
       }      
     }        
   }
@@ -2685,11 +2686,3 @@ zoid.create({
 var inControl;
 window.inControl = inControl = new Hadron("inControl", "#hadron-container");
 inControl.runControl();
-
-window.onload = function() {
-  if (window.AudioContext) {
-    inControl.context = new window.AudioContext();
-  } else if (window.webkitAudioContext) {
-    inControl.context = new window.webkitAudioContext();
-  }
-};
