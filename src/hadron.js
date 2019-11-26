@@ -77,8 +77,6 @@ class Hadron {
       this.userDictation = false;
       this.ttsURIToCall = null;
 
-      this.debugCommands = ["!!caps", "!!state", "!!config", "!!actr", "!!3js"];
-
       //jQuery controls AND this.hadronButton. These may act oddly because of the wrapping.
       this.container = false;
       this.quarkWrap = false;
@@ -909,114 +907,129 @@ class Hadron {
 
   // Is the input a hadron command?
   isCommand(userSaid) {
-    var param = '';
-    var ci = -1;
-    var length = this.debugCommands.length;
-    while(length--) {
-      if (userSaid.indexOf(this.debugCommands[length]) != -1) {
-        ci = length;
-        var foundCommand = this.debugCommands[length];
-        param = userSaid.replace(foundCommand, '').trim();
-        userSaid = foundCommand;
-        break;
-      }
+    var split = userSaid.split(' ')
+
+    if (split.shift() != '/hadron') {
+      return false
     }
 
-    var msg;
-    var convo;
+    var command = split.shift()
+    var params = split
 
-    if (ci == -1) {
-      return false;
+    console.log('Will execute command: ' + command + ' with params:' + params.join(' '))
+
+    if (command == 'show') {
+      this.commandShow(params)    
+    
+    } else if (command == 'startavatar') {
+      this.startAvatar(params)
+        
+    } else if (command == 'stopavatar') {
+      window.inAvatar.stopAvatar();
+
+    } else if (command == 'avatarconfig') {
+      this.command3dguiconfig(params)
+    
+    } else {      
+      var msg = [];
+      msg.push('Command not found');
+      var convo = { ice: { says: msg, reply: [] } };
+      setTimeout(() => {
+        this.talk(convo);
+      }, 1000);
+
+    }
+
+    return true
+  }
+
+  commandResponse(msgs) {
+    if (typeof msgs == 'string') {
+      var msgs_string = msgs
+      msgs = []
+      msgs.push(msgs_string)
+    }
+
+    console.log(msgs.join("\n"))
+
+    /*var convo = { ice: { says: msgs, reply: [] } };
+    setTimeout(() => {
+      this.talk(convo);
+    }, 1000);*/
+  }
+  
+  command3dguiconfig(params) {
+    if (!window.inAvatar) {
+      this.commandResponse('Avatar is not active')
+      return
+    }
+
+    var enabled = params[0] == 'on'
+    window.inAvatar.GUIConfigEnable(enabled)
+    if (enabled) {
+      this.commandResponse('Avatar GUI config enabled')
     } else {
-      if (userSaid == '!!caps') {
-        msg = [];
-        msg.push('Device Capabilities');
-        msg.push('WebGL: ' + this.boolToString(this.hasWebGL));
-        msg.push('WebGL Extensions: ' + this.boolToString(this.hasWebGLExtensions));
-        msg.push('Speech Synthesis: ' + this.boolToString(this.hasSpeechSynthesis));
-        msg.push('Speech Recognition: ' + this.boolToString(this.hasSpeechRecognition));
-        msg.push('Battery API: ' + this.boolToString(this.hasBatteryAPI));
-        msg.push('Low Battery: ' + this.boolToString(this.hasLowBattery));
-        msg.push('Low Bandwidth: ' + this.boolToString(this.hasLowBandwidth));
+      this.commandResponse('Avatar GUI config disabled')
+    }
+  }
 
-        convo = { ice: { says: msg, reply: [] } };
+  commandShow(params) {
+    var msg;
 
-        setTimeout(() => {
-          this.talk(convo);
-        }, 1000);
+    if (params[0] == 'caps') {
+      msg = [];
+      msg.push('Device Capabilities');
+      msg.push('WebGL: ' + this.boolToString(this.hasWebGL));
+      msg.push('WebGL Extensions: ' + this.boolToString(this.hasWebGLExtensions));
+      msg.push('Speech Synthesis: ' + this.boolToString(this.hasSpeechSynthesis));
+      msg.push('Speech Recognition: ' + this.boolToString(this.hasSpeechRecognition));
+      msg.push('Battery API: ' + this.boolToString(this.hasBatteryAPI));
+      msg.push('Low Battery: ' + this.boolToString(this.hasLowBattery));
+      msg.push('Low Bandwidth: ' + this.boolToString(this.hasLowBandwidth));
 
-        return true;
-      } else if (userSaid == "!!state") {
-        msg = [];
-        msg.push('Hadron State');
-        msg.push('TTS Visible: ' + this.boolToString(this.ttsVisible));
-        msg.push('TTS Enabled: ' + this.boolToString(this.ttsEnabled));
-        msg.push('Reco Visible: ' + this.boolToString(this.recoVisible));
-        msg.push('Reco Enabled: ' + this.boolToString(this.recoEnabled));
-        msg.push('Reco Continuous: ' + this.boolToString(this.recoContinuous));
+      this.commandResponse(msg)
+    } else if (params[0] == "state") {
+      msg = [];
+      msg.push('Hadron State');
+      msg.push('TTS Visible: ' + this.boolToString(this.ttsVisible));
+      msg.push('TTS Enabled: ' + this.boolToString(this.ttsEnabled));
+      msg.push('Reco Visible: ' + this.boolToString(this.recoVisible));
+      msg.push('Reco Enabled: ' + this.boolToString(this.recoEnabled));
+      msg.push('Reco Continuous: ' + this.boolToString(this.recoContinuous));
 
-        msg.push('Storage: ' + this.hadronStorage.provider);
-        if (this.hadronStorage.provider == "HadronFauxStorage") {
-          msg.push('Your browser is not allowing access to localStorage.  Please contact johnm@botanic.io with information like browser brand, version number, device (mobile, laptop, etc), OS (Windows, Linux)..');
-        }
-
-        msg.push('Is Secure: ' + this.boolToString(this.isSecure));
-        if (this.isSecure == false) {
-          msg.push('Since this site is not using HTTPS, functionality had to be disabled.');
-        }
-
-        convo = { ice: { says: msg, reply: [] } };
-
-        setTimeout(() => {
-          this.talk(convo);
-        }, 1000);
-
-        return true;
-      } else if (userSaid == '!!config') {
-        msg = [];
-        msg.push('Hadron Config');
-        msg.push('Also known as: ' + Config.also_known_as);
-        msg.push('AYBABTU: '       + Config.all_your_bases_are_belong_to_us);
-        msg.push('BBot URI: '      + Config.bbot_base_uri);
-        msg.push('Bot ID: '           + Config.botId);
-
-        convo = { ice: { says: msg, reply: [] } };
-
-        setTimeout(() => {
-          this.talk(convo);
-        }, 1000);
-
-        return true;
-      } else if (userSaid == "!!3js") {
-        msg = [];
-
-        // Just hide the renderer, don't remove.  So we can return the renderer with a command after a setting changes.
-        this.mediaView(false);
-
-        if (window.inAvatar == false) {
-          msg.push('Cannot inspect, renderer hasn\'t been started.');
-        } else {
-          msg = window.inAvatar.getRenderState();
-        }
-
-        convo = { ice: { says: msg, reply: [] } };
-
-        setTimeout(() => {
-          this.talk(convo);
-        }, 1000);
-
-        return true;
-      } else if (userSaid == "!!actr") {
-        this.startAvatar(param)
-        return true        
-
-      } else if (userSaid == "!!stopactr") {
-        window.inAvatar.stopAvatar();
-
-        return true;
+      msg.push('Storage: ' + this.hadronStorage.provider);
+      if (this.hadronStorage.provider == "HadronFauxStorage") {
+        msg.push('Your browser is not allowing access to localStorage.  Please contact johnm@botanic.io with information like browser brand, version number, device (mobile, laptop, etc), OS (Windows, Linux)..');
       }
 
-      return false;
+      msg.push('Is Secure: ' + this.boolToString(this.isSecure));
+      if (this.isSecure == false) {
+        msg.push('Since this site is not using HTTPS, functionality had to be disabled.');
+      }
+
+      this.commandResponse(msg)
+    } else if (params[0] == 'config') {
+      msg = [];
+      msg.push('Hadron Config');
+      msg.push('Also known as: ' + Config.also_known_as);
+      msg.push('AYBABTU: '       + Config.all_your_bases_are_belong_to_us);
+      msg.push('BBot URI: '      + Config.bbot_base_uri);
+      msg.push('Bot ID: '           + Config.botId);
+
+      this.commandResponse(msg)
+    } else if (params == "3js") {
+      msg = [];
+
+      // Just hide the renderer, don't remove.  So we can return the renderer with a command after a setting changes.
+      this.mediaView(false);
+
+      if (window.inAvatar == false) {
+        msg.push('Cannot inspect, renderer hasn\'t been started.');
+      } else {
+        msg = window.inAvatar.getRenderState();
+      }
+
+      this.commandResponse(msg)
     }
   }
 

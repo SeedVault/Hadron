@@ -606,9 +606,9 @@ export class HadronAvatar {
     
     var guiInner = $('<div>', {id: 'guiInner'});
     var guiOuter = $('<div>', {id: 'guiOuter'});
-    if (!inControl.use3DGUIConfig) {
-      $(guiOuter).hide();
-    }
+
+    this.guiOuter = guiOuter
+    this.GUIConfigEnable(inControl.use3DGUIConfig)
 
     guiInner.append(gui.domElement);
     guiOuter.append(guiInner);
@@ -616,6 +616,13 @@ export class HadronAvatar {
   
   }
 
+  GUIConfigEnable(enabled) {
+    if (!enabled) {
+      $(this.guiOuter).hide();
+    } else {
+      $(this.guiOuter).show();
+    }
+  }
 
   // Create the stats option.
   createStats() {
