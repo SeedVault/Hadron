@@ -608,7 +608,7 @@ export class HadronAvatar {
     var guiOuter = $('<div>', {id: 'guiOuter'});
 
     this.guiOuter = guiOuter
-    this.GUIConfigEnable(inControl.use3DGUIConfig)
+    this.guiConfigEnable(inControl.use3DGUIConfig)
 
     guiInner.append(gui.domElement);
     guiOuter.append(guiInner);
@@ -616,7 +616,7 @@ export class HadronAvatar {
   
   }
 
-  GUIConfigEnable(enabled) {
+  guiConfigEnable(enabled) {
     if (!enabled) {
       $(this.guiOuter).hide();
     } else {

@@ -127,7 +127,9 @@ class Hadron {
       this.ttsEnabled         = this.getControlData("bot-tts-enabled", false, "bool");      
       this.useLocalTTS        = this.getControlData("bot-local-tts", false, "bool");
       this.ttsVoiceId         = this.getControlData("bot-tts-voice-id", 0)
-
+      this.ttsLocale          = this.getControlData("bot-tts-locale", "en_US")
+      this.ttsTimeScale       = this.getControlData("bot-tts-timescale", 100)
+      
       this.recoVisible        = this.getControlData("bot-voice-recognition-visible", true, "bool");
       this.recoEnabled        = this.getControlData("bot-voice-recognition-enabled", false, "bool");
       this.recoContinuous     = this.getControlData("bot-voice-recognition-continuous", false, "bool");
@@ -921,14 +923,11 @@ class Hadron {
     if (command == 'show') {
       this.commandShow(params)    
     
-    } else if (command == 'startavatar') {
-      this.startAvatar(params)
-        
-    } else if (command == 'stopavatar') {
-      window.inAvatar.stopAvatar();
+    } else if (command == 'avatar') {
+      this.avatarEnable(params)
 
     } else if (command == 'avatarconfig') {
-      this.command3dguiconfig(params)
+      this.avatar3dGuiConfig(params)
     
     } else {      
       var msg = [];
@@ -949,23 +948,25 @@ class Hadron {
       msgs = []
       msgs.push(msgs_string)
     }
-
-    console.log(msgs.join("\n"))
-
-    /*var convo = { ice: { says: msgs, reply: [] } };
-    setTimeout(() => {
-      this.talk(convo);
-    }, 1000);*/
+    
+    if (this.commandResponse == 'console')
+      console.log(msgs.join("\n"))
+    else {
+      var convo = { ice: { says: msgs, reply: [] } };
+      setTimeout(() => {
+        this.talk(convo);
+      }, 1000);
+    }
   }
   
-  command3dguiconfig(params) {
+  avatar3dGuiConfig(params) {
     if (!window.inAvatar) {
       this.commandResponse('Avatar is not active')
       return
     }
 
     var enabled = params[0] == 'on'
-    window.inAvatar.GUIConfigEnable(enabled)
+    window.inAvatar.guiConfigEnable(enabled)
     if (enabled) {
       this.commandResponse('Avatar GUI config enabled')
     } else {
@@ -1033,6 +1034,20 @@ class Hadron {
     }
   }
 
+  avatarEnable(param) {
+    if (param[0] == 'start') {
+      this.startAvatar(param[1])
+    } else if (param[0] == 'stop') {
+      if (window.inAvatar) {
+        window.inAvatar.stopAvatar();
+      } else {
+        this.commandResponse('Avatar is not enabled')
+      }
+    } else {
+      this.commandResponse('Unknown parameter')
+    }
+  }
+
   startAvatar(avatarParam) {
     return new Promise(async(resolve, reject) => {
       if (this.use3DAvatar == false || this.hasWebGL == false) {
@@ -1050,8 +1065,9 @@ class Hadron {
       if (window.inAvatar == false) {
         let avatar = await import(/* webpackChunkName: "hadronavatar" */ './hadron.avatar.js')
         window.inAvatar = new avatar.HadronAvatar("inAvatar");
-        console.log(avatarParam)
+        window.inAvatar.options.ttsTimeScale = this.ttsTimeScale        
         await window.inAvatar.checkACTRInput(avatarParam);            
+
       }
       resolve()
     })
@@ -1818,19 +1834,18 @@ class Hadron {
     if (this.isACTRRunning()) {
       ttsTimeScale = window.inAvatar.options.ttsTimeScale      
     } else {
-      ttsTimeScale = 100      
+      ttsTimeScale = this.ttsTimeScale
     }
-
     var req_params = {
         'orgId': 1,
         'botId': this.botId,
         'userId': this.userId,   
-        'pubToken': this.pubToken,        
-        'locale': this.botLocale,
+        'pubToken': this.pubToken,                
         'actrEnabled': this.isACTRRunning(),         
         'ttsEnabled': this.ttsEnabled && !this.useLocalTTS,
         'ttsTimeScale': ttsTimeScale,     
         'ttsVoiceId': this.ttsVoiceId,
+        'ttsLocale': this.ttsLocale,        
         'input': {
             'text': text
         }
