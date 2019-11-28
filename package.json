@@ -1,6 +1,6 @@
 {
   "name": "hadron",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Standalone Web Chat Client for use with Botanic/SEED Token Network services.",
   "scripts": {
     "dev": "webpack-dev-server --open --config build/wp.dev.js",
