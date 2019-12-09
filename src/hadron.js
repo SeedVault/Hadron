@@ -229,7 +229,7 @@ class Hadron {
       }
 
       if (!userId) {
-        userId = 'hadron_anon_' + this.botId + '_' + this.s4() + this.s4();        
+        userId = 'hadron_anon_' + this.s4() + this.s4();        
       }
 
       if (trackAnon) {
