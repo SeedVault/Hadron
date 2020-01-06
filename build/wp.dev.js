@@ -18,7 +18,7 @@ module.exports = merge(common, {
       inject: true,
       chunks: ['launcher'],
       templateParameters: { 
-          bbotUrl: process.env.BBOT_URL || 'http://localhost:5000/restful_channel', 
+          bbotUrl: process.env.BBOT_URL || 'http://localhost:5000/api/channels/restful', 
           bbotId: process.env.BBOT_ID,
           publisherToken: process.env.PUBLISHER_TOKEN
 
