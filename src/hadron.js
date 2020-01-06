@@ -8,6 +8,7 @@
 import Artyom from 'artyom.js';
 import * as Modernizr from 'modernizr'
 import zoid from 'zoid'
+import * as AdaptiveCards from "adaptivecards"
 
 import './assets/css/input.css';
 import './assets/css/reply.css';
@@ -802,54 +803,8 @@ class Hadron {
 
           var userSaid = this.inputText.val();
 
-          if (this.isStopListeningCommand(userSaid)) {
-            return;
-          }
-
-          // allow user to interrupt the bot
-          if (typeof(this.quarkQueue) !== false)  {
-            clearTimeout(this.quarkQueue);
-          }
-
-          var lastQuark = $(".quark.say");
-          lastQuark = lastQuark[lastQuark.length - 1];
-          if ($(lastQuark).hasClass("reply") && !$(lastQuark).hasClass("reply-freeform")) {
-            $(lastQuark).addClass("quark-hidden");
-          }
-
-          var styledUserInput = this.inputText.val();
-          var sentimentPlaceholder = "";
-
-          if (this.showSentiment) {
-            sentimentPlaceholder = '<span class="quark-sentiment-placeholder">&nbsp;</span>';
-          }
-
-          if (this.hideButtonsWhenClicked) {
-            $('.quark-button-wrap').hide();
-          }
-
-          this.addQuark(
-            sentimentPlaceholder + '<span class="quark-user-input quark-pick right-align ' + this.botSaysClass + '">' + styledUserInput + "</span>",
-            function() {},
-            "reply reply-freeform"
-          );
-
-          if (this.isCommand(userSaid) == true) {
-            this.inputText.val("");
-            return;
-          }
-
-          //this.avatarState('acknowledge');
-
-          // call BBot after a slight delay.  BBot can answer so quickly that it breaks behavior.
-          // var userSaid = this.inputText.val();
-          setTimeout(() => {
-            var responseText = this.callBBot(userSaid, function(botSaid, cards) {
-
-            });
-          }, 50);
-
-          this.inputText.val("");
+          this.userSaid(userSaid)
+          
         }
       });
 
@@ -860,6 +815,56 @@ class Hadron {
       }
 
       this.inputText.focus();
+  }
+
+  userSaid(userSaid) {
+    if (this.isStopListeningCommand(userSaid)) {
+      return;
+    }
+
+    // allow user to interrupt the bot
+    if (typeof(this.quarkQueue) !== false)  {
+      clearTimeout(this.quarkQueue);
+    }
+
+    var lastQuark = $(".quark.say");
+    lastQuark = lastQuark[lastQuark.length - 1];
+    if ($(lastQuark).hasClass("reply") && !$(lastQuark).hasClass("reply-freeform")) {
+      $(lastQuark).addClass("quark-hidden");
+    }
+    
+    var sentimentPlaceholder = "";
+
+    if (this.showSentiment) {
+      sentimentPlaceholder = '<span class="quark-sentiment-placeholder">&nbsp;</span>';
+    }
+
+    if (this.hideButtonsWhenClicked) {
+      $('.quark-button-wrap').hide();
+    }
+
+    this.addQuark(
+      sentimentPlaceholder + '<span class="quark-user-input quark-pick right-align ' + this.botSaysClass + '">' + userSaid + "</span>",
+      function() {},
+      "reply reply-freeform"
+    );
+
+    if (this.isCommand(userSaid) == true) {
+      this.inputText.val("");
+      return;
+    }
+
+    //this.avatarState('acknowledge');
+
+    // call BBot after a slight delay.  BBot can answer so quickly that it breaks behavior.
+    // var userSaid = this.inputText.val();
+    setTimeout(() => {
+      var responseText = this.callBBot(userSaid, function(botSaid, cards) {
+
+      });
+    }, 50);
+
+    this.inputText.val("");
   }
 
   ttsEnable(flag) {
@@ -1276,7 +1281,7 @@ class Hadron {
   }
 
   // accept JSON & create quark
-  talk(convo, here = "ice") {
+  talk(convo, here = "ice") {console.log('talk', convo)
     if (convo == false) {
       if (this.botWelcomeText == false || this.botWelcomeText == "") {
         return;
@@ -1299,7 +1304,7 @@ class Hadron {
   }
 
   // This starts the reply process, adds the user input, does ... etc
-  reply(turn) {
+  reply(turn) {console.log('reply', turn)
     this.iceBreaker = typeof(turn) === "undefined";
     turn = !this.iceBreaker ? turn : this._convo.ice;
     var questionsHTML = ''; // "<div class='quark-button-wrap'>";
@@ -1354,65 +1359,29 @@ class Hadron {
   }
 
   // This receives the info from BBot both text and card array
-  processResponse(botSaid, cards, bbot_response) {
+  processResponse(botSaid) {
     if (this.isUndefined(botSaid) == true) {
       return;
     }
 
-    this.consoleLog(botSaid);
-    this.consoleLog(cards);
-
-    var messageObject;
-    var buttons = [];
-
-    this.threedVisualizerID = false;
-
-    var messages = [];
-    for (var index = 0, len = botSaid.length; index < len; ++index) {
-      if (botSaid[index].speech != "") {
-        //var botSaidAfter = this.parseBotResponse(botSaid[index].speech);
-        var botSaidAfter = botSaid[index].speech;
-
-        var withMedia = this.convertMedia(botSaidAfter);
-
-        if (withMedia == false) {
-          messageObject = { message: botSaidAfter, unadorned: false};
-        } else {
-          messageObject = { message: withMedia, unadorned: true};
-        }
-        messages.push(messageObject);
+    console.log('botSaid', botSaid);
+    
+    var messages = []
+    botSaid.forEach((bs) => {
+      var msg = this.processMessages(bs)
+      if (msg) {
+        messages.push(msg)
       }
-    }
-
-    if (botSaid.length == 0) {
-        messageObject = { message: "", unadorned: false};
-        messages.push(messageObject);
-        console.log("Odd. The bot was silent.")
-    }
-
-    var media = "";
-    var cardList = cards[0] || false;
-
-    if (cardList != false &&  cardList.length > 0) {
-      for (let c of cardList) {
-        var res = this.processCard(c);
-
-        if (this.isUndefined(res) == false) {
-          var aMesg = res.msg;
-
-          if (aMesg != "") {
-            messages.push(aMesg);
-          }
-
-          for (let b of res.btn) {
-            buttons.push(b);
-          }
-        }
+      var card = this.processCard(bs)
+      if (card) {
+        messages.push(card)
       }
-    }
 
+    })
+    
+    
     //convo = { ice: { says: [botWelcomeText], reply: [] } }
-    var conv = { ice: { says: messages, reply: buttons.reverse() } };
+    var conv = { ice: { says: messages, reply: [] } };
     this.talk(conv);
 
     $('#mediaplayer').on('ended', function() {
@@ -1426,6 +1395,12 @@ class Hadron {
     });
 
     if (this.threedVisualizerID != false) {
+    }
+  }
+
+  processMessages(message) {    
+    if (message.hasOwnProperty('text')) {
+      return message.text
     }
   }
 
@@ -1494,160 +1469,256 @@ class Hadron {
 
   // This handles a specific card, it will be changed so we can dynamically insert a replacement renderer.
   // Also support adding some JS through another class that gives new renderer types rather than clutter the main class.
-  processCard(card) {
-    var buttons = [];
-    var message = "";
-    var media = "";
-    var image = "";
-    var video = "";
-    var audio = "";
-    var text = "";
+  processCard(msg) {
+    var card
+    var msg
+    if (msg.hasOwnProperty('contentType')) {
+      if (msg.contentType == "application/vnd.microsoft.card.hero") {
+                
+        card = this.heroCardHandler(msg.content)
+        msg = { message: card, unadorned: true};
 
-    if (card != false) {
-      var contentType = "";
-      if (card.contentType == "application/vnd.microsoft.card.hero") {
-        contentType = "hero";
-      } else if (card.contentType == "application/vnd.microsoft.card.video") {
-        contentType = "video";
-      } else if (card.contentType == "application/vnd.microsoft.card.audio") {
-        contentType = "audio";
-      } else if (card.contentType == "application/vnd.microsoft.card.image") {
-        contentType = "image";
-      } else if (card.contentType == "application/vnd.botanic.card.3dvisualizer") {
-        contentType = "3dvisualizer";
+      } else if (msg.contentType == "application/vnd.microsoft.card.video") {
+               
+        card = this.videoHandler(msg.content);
+        msg = { message: card, unadorned: true};
+
+        /*if (video.endsWith('fullscreen')) {
+          this.mediaView(true);
+          this.mediaOverlayContent.html(msg.message);          
+        }
+          */    
+      } else if (msg.contentType == "application/vnd.microsoft.card.audio") {
+                
+        card = this.audioHandler(msg.content)
+        msg = { message: card, unadorned: true};      
+
+      } else if (msg.contentType == "application/vnd.botanic.card.image") {
+        
+        card = this.imageHandler(image);
+        msg = { message: card, unadorned: true};
+
+      } else if (msg.contentType == 'application/vnd.microsoft.card.adaptive') {
+        
+        card = this.adaptiveCardsHandler(msg.content)
+        msg = { message: card, unadorned: true};
+
       }
 
-      //JEM CLEAN Make card renderer objects, get this out of here.  Pass the card data into the object and let it do the rest.
-      if (contentType == "video") {
-        try {
-          image = card.content.image.url || "";
-          image = this.removeProtocol(image);
-        } catch(error) {
-          image = "";
-        }
+      return msg
+    }      
+  }
 
-        try {
-          video = card.content.media[0].url || "";
-          video = this.removeProtocol(video);
-        } catch(error) {
-          video = "";
-        }
+  heroCardHandler(json) {
+    /*var heroCard = {
+      "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
+      "type": "AdaptiveCard",
+      "version": "1.0",    
+      "body": [
+        {
+          "type": "TextBlock",
+          "id": "Title",
+          "horizontalAlignment": "Left",
+          "size": "Default",
+          "weight": "Bolder",
+          "text": json.title
+        },      
+        {
+          "type": "TextBlock",
+          "id": "Subtitle",
+          "horizontalAlignment": "Center",
+          "size": "ExtraLarge",
+          "text": json.subtitle,
+          "wrap": true
+        },
+        {
+          "type": "Image",
+          "horizontalAlignment": "Center",
+          "url": json.images[0].url,
+          "size": "Stretch"
+        },
+      ],
+        "actions": this.heroCardActionToAdaptiveCardAction(json.buttons)
+      }  
+      return this.adaptiveCardsHandler(heroCard)*/
 
-        if (video != "") {
-          message = this.videoHandler(image, video);
 
-          if (video.endsWith('fullscreen')) {
-            this.mediaView(true);
-            this.mediaOverlayContent.html(message.message);
+    var heroCard = this.commonCardHandler(json)    
 
-            return;
+    var image = {
+      "type": "Image",
+      "url": json.images[0].url
+    }
+    heroCard.body.unshift(image)
+    return this.adaptiveCardsHandler(heroCard)              
+  }
+
+  heroCardActionToAdaptiveCardAction(actions) {
+    var response = []
+    actions = actions || []
+    actions.forEach((a) => {
+      if (a.type == 'openUrl') {
+        response.push({
+          "type": "Action.OpenUrl",
+          "url": a.value,
+          "title": a.title
+        })
+      }
+      if (a.type == 'imBack') {
+        response.push( {
+          "type": "Action.Submit",
+          "title": a.title,
+          "data": {
+            "value": a.value
           }
-        }
+        })
       }
+    })
+    return response
+  }
 
-      if (contentType == "audio") {
-        try {
-          image = card.content.image.url || "";
-          image = this.removeProtocol(image);
-        } catch(error) {
-          image = "";
-        }
+  audioHandler(json) {
+    var audio      = document.createElement('audio');
+    //audio.id       = 'audio-player';
+    audio.controls = 'controls';
+    audio.src      = json.media[0].url
+    audio.autoPlay = json.autostart
+    audio.loop     = json.autoloop
+    audio.poster   = json.image
+    console.log(audio)
+    return this.mediaHandler(json, audio)
+  }
 
-        try {
-          audio = card.content.media[0].url || "";
-          audio = this.removeProtocol(audio);
-        } catch(error) {
-          audio = "";
-        }
+  videoHandler(json) {
+    var urlParse = new URL(json.media[0].url)
+    if (urlParse.hostname == 'www.youtube.com' || urlParse.hostname == 'youtu.be') {
+      return this.youtubeVideoHandler(json)
+    } else {
+      return this.htmlVideoHandler(json)
+    }
+  }
 
-        // JEM need to toggle controls and detect mimetype properly.  Same with video.
-        if (audio != "") {
-          media  = '<audio controls class="responsive-audio">';
-          media += '<source src="' + audio + '" type="audio/mpeg">';
-          media += '</audio>';
+  htmlVideoHandler(json) {
+    var video      = document.createElement('video');
+    //video.id       = 'video-player';
+    video.controls = 'controls';
+    video.src      = json.media[0].url
+    video.autoPlay = json.autostart
+    video.loop     = json.autoloop
+    video.poster   = json.image
+    return this.mediaHandler(json, video)
+  }
 
-          message = { message: media, unadorned: true};
-        }
-      }
-
-      if (contentType == "image") {
-        try {
-          image = card.content.images[0].url || "";
-          image = this.removeProtocol(image);
-        } catch(error) {
-          image = "";
-        }
-
-        // JEM need to toggle controls and detect mimetype properly.  Same with video.
-        if (image != "") {
-          message = this.imageHandler(image);
-        }
-      }
-
-      if (contentType == "hero") {
-        try {
-          image = card.content.images[0].url || "";
-          image = this.removeProtocol(image);
-        } catch(error) {
-          image = "";
-        }
-
-        text = card.content.text || "";
-
-        if (image != "" && text != "") {
-          media = `<div class="row responsive-card">
-        <div class="col s12 m12">
-          <div class="card">
-            <div class="card-image">
-              <img src="` + image + `">
-              <span class="card-title"></span>
-            </div>
-            <div class="card-content">
-              <p>` + text + `</p>
-            </div>
-          </div>
-        </div>
-      </div>`;
-
-          message = { message: media, unadorned: true};
-        }
-      }
-
-      // This code needs to be more flexible.  Know the difference between a SkypeCard, AdaptiveCard and HadronCard.
-      // Should be pulled into a separate class and processed so this is cleaner.
-      if (typeof card.content.buttons !== "undefined") {
-        if (card.content.buttons.length > 0) {
-          for (var index = 0, len = card.content.buttons.length; index < len; ++index) {
-            var jsonButton = card.content.buttons[index];
-            var button;
-
-            if (jsonButton.type == 'openUrl') {
-              button = { question: jsonButton.title, answer: jsonButton.value, type: jsonButton.type};
-            } else {
-              button = { question: jsonButton.title, answer: jsonButton.value, type: jsonButton.type};
-            }
-            buttons.push(button);
-          }
-        }
+  youtubeVideoHandler(json) {
+    //get video id from youtube url
+    var embedId 
+    var urlParse = new URL(json.media[0].url)
+    if (urlParse.hostname == 'www.youtube.com' && urlParse.pathname == '/watch') {//url from youtube page
+      var embedId = json.media[0].url.split('v=')[1];
+      var ampersandPosition = embedId.indexOf('&');
+      if(ampersandPosition != -1) {
+        embedId = embedId.substring(0, ampersandPosition);
       }
     }
+    else if (urlParse.hostname == 'youtu.be') {//url from shared link
+      embedId = urlParse.pathname.substr(1);
+    }
 
-    var obj = {};
-    obj.msg = message;
-    obj.btn = buttons;
-
-    return obj;
+    var video      = document.createElement('iframe');        
+    video.src      = `https://youtube.com/embed/${embedId}`
+    video.allowFullScreen = "true"    
+    video.frameborder = "0"
+    video.style.cssText = "border: none;"
+    return this.mediaHandler(json, video)
   }
+
+  mediaHandler(json, mediaElement) {
+    var commonCard = this.commonCardHandler(json)
+    var commonCardRendered = this.adaptiveCardsHandler(commonCard)    
+
+    var cardContainer = document.createElement('div')  
+    cardContainer.style.cssText = 'margin-top: 10px;'  
+    cardContainer.appendChild(mediaElement)
+    cardContainer.appendChild(commonCardRendered)
+    
+    return cardContainer
+  }
+
+  commonCardHandler(json) {    
+    var commonCard = {
+      "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
+      "type": "AdaptiveCard",
+      "version": "1.0",    
+      "body": [
+        {
+          "type": "TextBlock",
+          "id": "Title",
+          "horizontalAlignment": "Left",
+          "size": "Medium",
+          "weight": "Bolder",
+          "wrap": true,
+          "text": json.title
+        },        
+        {
+          "type": "TextBlock",
+          "id": "Subtitle",
+          "horizontalAlignment": "Left",
+          "size": "default",
+          "text": json.subtitle,
+          "wrap": true,
+          "isSubtle": true
+        },
+        {
+          "type": "TextBlock",
+          "id": "Text",
+          "horizontalAlignment": "Left",
+          "size": "default",
+          "text": json.text,
+          "wrap": true,          
+        }              
+      ],
+      "actions": this.heroCardActionToAdaptiveCardAction(json.buttons)
+    }  
+    return commonCard
+  }
+
+  adaptiveCardsHandler(card) {
+    var adaptiveCard = new AdaptiveCards.AdaptiveCard();
+    adaptiveCard.hostConfig = new AdaptiveCards.HostConfig({
+      "actions": {
+        "actionsOrientation": "vertical",
+        "buttonSpacing": 5
+      },
+    });
+    
+    adaptiveCard.onExecuteAction = (action) => { 
+      console.log("Triggered submit action from adaptive card: ", action)
+      if (action.constructor.name == 'SubmitAction') {
+        if (action.data.hasOwnProperty('imBack')) {
+          this.userSaid(action.data.imBack)
+        }      
+      }
+      if (action.constructor.name == 'OpenUrlAction') {
+        var win = window.open(action.url, '_blank')        
+      }
+      this.inputText.focus(); // clicking on actions takes focus out of input text field
+    }
+    
+    adaptiveCard.parse(card);
+    var renderedCard = adaptiveCard.render();
+    var style = renderedCard.getAttribute('style');
+    renderedCard.setAttribute('style', 'width: 100%; ' + style)
+    return renderedCard    
+  }
+
 
   // wrap image
-  imageHandler(image) {
-    var media  = '<img src="' + image + '" class="responsive-img" />';
-    var message = { message: media, unadorned: true};
-
-    return message;
+  imageHandler(json) {
+    var card  = '<img src="' + json + '" class="responsive-img" />';
+    return card;
   }
 
-  // Video handling
+  /*// Video handling
   videoHandler(image, video, autoplay) {
     var media = "";
 
@@ -1677,10 +1748,10 @@ class Hadron {
       media += '</video>';
     }
 
-    var message = { message: media, unadorned: true};
+    var card = { message: media, unadorned: true};
 
-    return message;
-  }
+    return card;
+  }*/
 
   // Make a call to BBot to do the TTS.  Could also speak locally in some cases but this allows for a custom voice.
   handleTTS(url, startCallback, endCallback, delay) {    
@@ -1872,37 +1943,33 @@ class Hadron {
     })
   }
 
-  ajaxResponse(response, callback) {    
+  ajaxResponse(response, callback) {console.log('ajaxRespone', response)
     this.lastAjaxResponse = response //will be used if browser dont let play audio. There will be an exception so this values will be kept stored until it is playback
-
-    var json_obj = this.processBbotResponse(response);
 
     if (response.tts) {
       this.ttsURIToCall = response.tts.url 
     } 
     
-    this.showTextResponse(response)
+    this.showTextResponse(response['output'])
     this.playAudioResponse(response)
 
-    callback(json_obj.messages, json_obj.cards);
+    callback(response);
   }
 
-  showTextResponse(response) {
-    var json_obj = this.processBbotResponse(response);
+  showTextResponse(response) {    
     if (this.isACTRRunning() == true) {    
-      window.inAvatar.processMessages(json_obj.messages || false);
+      window.inAvatar.processMessages(response || false);
     } else {      
-      this.processResponse(json_obj.messages, json_obj.cards, response);
+      this.processResponse(response);
     }
   }
 
-  playAudioResponse(response) {
-    var json_obj = this.processBbotResponse(response);
+  playAudioResponse(response) {    
     if (this.isACTRRunning() == true) {
       window.inAvatar.processACTR(response.actr || false);      
     } else {
       if (this.ttsEnabled == true && this.useLocalTTS == true) {
-          this.localTTS(json_obj.bot_said || "");
+          this.localTTS(json_obj.bot_said || ""); //@TODO <<<<<<<<<<<<<<<<<<<<<<<<<<<<
       }
 
       // Do not reset the tts var is actr is running, it needs it.
@@ -1917,86 +1984,7 @@ class Hadron {
     }        
   }
 
-
-  //convert legacy protocol to bbot protocol    
-  processBbotResponse(bbot_response) {          
-      
-      var messages = [];
-      var cards = [];
-      var buttons = [];
-      var speech_synth = ''
-      bbot_response.output.forEach(function(br, index, array) {
-          //get bbot response type
-          var type = Object.keys(br)[0];
-          
-          if (type == 'text') {
-              messages.push({
-                  'speech': br[type], 
-                  'type': 0
-              });
-          }
-          if (type == 'image') {
-              cards.push({
-                  'contentType': 'application/vnd.microsoft.card.image', 
-                  'content': {
-                      'images': [{
-                              'url': br[type].url
-                          }]
-                  }});
-          }
-          if (type == 'video') {
-              cards.push({
-                  'contentType': 'application/vnd.microsoft.card.video', 
-                  'content': {
-                      'media': [{
-                              'url': br[type].url
-                          }],                      
-                      'image': [{
-                              'url': ''
-                          }]
-                  }});
-          }
-          if (type == 'audio') {
-              cards.push({
-                  'contentType': 'application/vnd.microsoft.card.audio', 
-                  'content': {
-                      'media': [{
-                              'url': br[type].url
-                          }],                      
-                      'image': [{
-                              'url': ''
-                          }]
-                  }});
-          }
-          if (type == 'button') {
-              buttons.push({             
-                          'title': br[type].text,
-                          'value': br[type].postback,
-                          'type':'postback'
-                      }
-              
-              );
-          }
-                          
-      });
-      
-      if (buttons.length) {
-          cards.push({
-              'content': {
-                  'buttons': buttons
-              }
-          });
-      }
-      
-      var json_obj = {
-          'messages': messages,
-          'cards': [cards],              
-      };
-              
-      return json_obj;
-  }
-
-
+  
 
   // Enable/disable media view mode.  In media view mode an overlay holds the media object, is stationary and has a one line element to display the last user test.
   mediaView(state) {
@@ -2037,8 +2025,8 @@ class Hadron {
   }
 
   // Show response when mediaView is true.
-  mediaViewResponse(message) {
-    this.mediaOverlayResponse.html(message);
+  mediaViewResponse(card) {
+    this.mediaOverlayResponse.html(card);
   }
 
   // Insert the media container, e.g. a video player or 3D avatar.
@@ -2073,8 +2061,7 @@ class Hadron {
       var responseText = this.callBBot(key, function(botSaid, cards) {
       });
     } else {
-      var win = window.open(key, '_blank');
-      win.focus();
+      var win = window.open(key, '_blank');      
       return;
     }
 
@@ -2157,7 +2144,7 @@ class Hadron {
       this.quark.append(this.quarkContent);
     } else {
       this.quark = $('<div>', {class: reply + " quark-unadorned imagine "});
-      this.quarkContent = $('<span>', {class: ""});
+      this.quarkContent = $('<span>');
       this.quarkContent.html(say);
       this.quark.append(this.quarkContent);
     }
@@ -2212,7 +2199,7 @@ class Hadron {
      this.quarkQueue = setTimeout(() => {
        this.quark.removeClass("imagine");
 
-       var quarkWidthCalc = parseInt(this.quarkContent[0].offsetWidth * 1, 10) + this.widerBy;
+       /*var quarkWidthCalc = parseInt(this.quarkContent[0].offsetWidth * 1, 10) + this.widerBy;
 
        if (quarkWidthCalc <= this.widerBy) {
          quarkWidthCalc = 360 * 0.4;
@@ -2225,7 +2212,8 @@ class Hadron {
 
        quarkWidthCalc = Math.min(quarkWidthCalc, maxQuarkWidth);
 
-       quarkWidthCalc = quarkWidthCalc + "px";
+       quarkWidthCalc = quarkWidthCalc + "px";*/
+       var quarkWidthCalc = '100px'
 
        var isResponsive = false;
        var isResponsiveImage = this.quark.find('.responsive-img');
@@ -2242,7 +2230,8 @@ class Hadron {
        }
 
        if (isResponsive == false) {
-         this.quark.css("width", reply == "" ? quarkWidthCalc : "");
+         //this.quark.css("width", reply == "" ? quarkWidthCalc : "");
+         this.quarkContent.css("width", reply == "" ? quarkWidthCalc : "");
        }
 
        this.quark.addClass("say");
@@ -2250,7 +2239,7 @@ class Hadron {
        posted();
 
        // save the interaction
-       if (!this.iceBreaker) {
+       if (!this.iceBreaker) {console.log('say', say)
          this.interactionsSave(say, reply);
          this.interactionsSaveCommit();
        }
