@@ -1,8 +1,6 @@
-{
+module.exports = {  
   "minify": true,
-  "options": [
-    "setClasses"
-  ],
+  "options": ["setClasses"],
   "feature-detects": [
     "test/audio",
     "test/battery",

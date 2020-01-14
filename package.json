@@ -54,8 +54,6 @@
     "http-proxy-middleware": "~0.19.1",
     "json-loader": "~0.5.7",
     "modernizr": "~3.7.1",
-    "modernizr-loader": "~1.0.1",
-    "modernizr-webpack-plugin": "~1.0.7",
     "node-notifier": "~5.4.3",
     "ora": "~3.4.0",
     "portfinder": "~1.0.23",

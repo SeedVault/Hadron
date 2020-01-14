@@ -38,20 +38,21 @@ module.exports = {
             loaders: [
                 'style-loader',
                 'css-loader',
-            ]
+                ]
             },
             {
-                test: /\.modernizrrc(\.json)?$/,
-                use: [ 'modernizr-loader', 'json-loader' ]
+                loader: "webpack-modernizr-loader",
+                test: /\.modernizrrc\.js$/
+                // Uncomment this when you use `JSON` format for configuration
+                // type: 'javascript/auto'
             }
         ]
     },
     resolve: {
-        extensions: ['.js', '.vue', '.json'],
-        alias: {
-            'vue$': 'vue/dist/vue.esm.js',
+        extensions: ['.js', '.json'],
+        alias: {            
             '@': resolve('src'),
-            modernizr$: path.resolve(__dirname, "../.modernizrrc")
+            modernizr$: path.resolve(__dirname, "../.modernizrrc.js")
         }
     },
     plugins: [      

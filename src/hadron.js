@@ -1924,11 +1924,7 @@ class Hadron {
     
     $.ajax({url: this.BBotBaseUrl,
         type: 'post',
-        dataType: 'json',
-        xhrFields: {
-            withCredentials: true
-        },
-        crossDomain: true,
+        dataType: 'json',        
         contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(req_params),
         context: this,
