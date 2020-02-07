@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/SeedVault/Hadron#readme",
   "dependencies": {
-    "adaptivecards": "^1.2.5",
+    "adaptivecards": "~1.2.5",
     "artyom.js": "~1.0.6",
     "dat.gui": "~0.7.6",
     "jquery": "~3.4.1",

@@ -88,13 +88,13 @@
 
 
 /* style media that's inside quarks */
-.quark .quark-content img {
+/*.quark .quark-content img {
   width: calc(100% + 32px);
   margin: -8px -16px;
   overflow: hidden;
   display: block;
   border-radius: 5px 15px 15px 15px;
-}
+}*/
 
 .quark-picked {
   background-color: rgba(62, 195, 128, 0.67) !important;

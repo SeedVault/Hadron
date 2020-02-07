@@ -77,6 +77,7 @@ class Hadron {
       this.stopListeningCommand = "stop listening";
       this.userDictation = false;
       this.ttsURIToCall = null;
+      this.suggestedActions = null
 
       //jQuery controls AND this.hadronButton. These may act oddly because of the wrapping.
       this.container = false;
@@ -1367,17 +1368,34 @@ class Hadron {
     console.log('botSaid', botSaid);
     
     var messages = []
+    var suggestedActions
     botSaid.forEach((bs) => {
       var msg = this.processMessages(bs)
       if (msg) {
         messages.push(msg)
       }
-      var card = this.processCard(bs)
-      if (card) {
-        messages.push(card)
+
+      //check if there are suggested actions attached 
+      if (bs.hasOwnProperty('suggestedActions') && bs.suggestedActions.hasOwnProperty('actions')) {      
+        console.log('Found suggested actions')
+        suggestedActions = { message: this.processSuggestedActions(bs.suggestedActions.actions), unadorned: true}
+      }        
+
+      if (bs.hasOwnProperty('attachments')) {
+        console.log('Found attachments')
+        bs.attachments.forEach((a) => {
+          var card = this.processCard(a)
+          if (card) {
+            messages.push(card)
+          }
+        })        
       }
 
     })
+    //check for suggested actions
+    if (suggestedActions) {
+      messages.push(suggestedActions)      
+    }
     
     
     //convo = { ice: { says: [botWelcomeText], reply: [] } }
@@ -1398,7 +1416,7 @@ class Hadron {
     }
   }
 
-  processMessages(message) {    
+  processMessages(message) {        
     if (message.hasOwnProperty('text')) {
       return message.text
     }
@@ -1407,6 +1425,23 @@ class Hadron {
   replaceAll(string, search, replacement) {
     return string.replace(new RegExp(search, 'g'), replacement);
   }
+
+
+  processSuggestedActions(actions) {
+    //suggested actions are rendered as an adaptive card
+    var card = {
+      "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
+      "type": "AdaptiveCard",
+      "version": "1.0",          
+      "actions": this.BotFrameworkActionToAdaptiveCardAction(actions)
+    }
+    
+    var customConfig = {}
+    var customStyle = 'margin-top: 20px;'
+    var hc = this.adaptiveCardsHandler(card, customConfig, customStyle)
+    return hc
+  } 
+
 
   // Look for a trigger phrase OR fix errors in certain types of data.....
   parseBotResponse(botSaid) {
@@ -1466,22 +1501,21 @@ class Hadron {
     return false;
   }
 
-
-  // This handles a specific card, it will be changed so we can dynamically insert a replacement renderer.
-  // Also support adding some JS through another class that gives new renderer types rather than clutter the main class.
+  //renders all cards into html code
   processCard(msg) {
     var card
     var msg
     if (msg.hasOwnProperty('contentType')) {
+      console.log('Found heroCard')
       if (msg.contentType == "application/vnd.microsoft.card.hero") {
                 
         card = this.heroCardHandler(msg.content)
-        msg = { message: card, unadorned: true};
+        msg = { message: card, unadorned: false};
 
       } else if (msg.contentType == "application/vnd.microsoft.card.video") {
                
         card = this.videoHandler(msg.content);
-        msg = { message: card, unadorned: true};
+        msg = { message: card, unadorned: false};
 
         /*if (video.endsWith('fullscreen')) {
           this.mediaView(true);
@@ -1491,17 +1525,17 @@ class Hadron {
       } else if (msg.contentType == "application/vnd.microsoft.card.audio") {
                 
         card = this.audioHandler(msg.content)
-        msg = { message: card, unadorned: true};      
+        msg = { message: card, unadorned: false};      
 
-      } else if (msg.contentType == "application/vnd.botanic.card.image") {
+      } else if (["application/vnd.microsoft.card.thumbnail", "image/png", "image/jpeg"].includes(msg.contentType)) {
         
-        card = this.imageHandler(image);
-        msg = { message: card, unadorned: true};
+        card = this.imageHandler(msg.content);
+        msg = { message: card, unadorned: false};
 
       } else if (msg.contentType == 'application/vnd.microsoft.card.adaptive') {
         
         card = this.adaptiveCardsHandler(msg.content)
-        msg = { message: card, unadorned: true};
+        msg = { message: card, unadorned: false};
 
       }
 
@@ -1510,50 +1544,21 @@ class Hadron {
   }
 
   heroCardHandler(json) {
-    /*var heroCard = {
-      "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
-      "type": "AdaptiveCard",
-      "version": "1.0",    
-      "body": [
-        {
-          "type": "TextBlock",
-          "id": "Title",
-          "horizontalAlignment": "Left",
-          "size": "Default",
-          "weight": "Bolder",
-          "text": json.title
-        },      
-        {
-          "type": "TextBlock",
-          "id": "Subtitle",
-          "horizontalAlignment": "Center",
-          "size": "ExtraLarge",
-          "text": json.subtitle,
-          "wrap": true
-        },
-        {
-          "type": "Image",
-          "horizontalAlignment": "Center",
-          "url": json.images[0].url,
-          "size": "Stretch"
-        },
-      ],
-        "actions": this.heroCardActionToAdaptiveCardAction(json.buttons)
-      }  
-      return this.adaptiveCardsHandler(heroCard)*/
-
-
+    
     var heroCard = this.commonCardHandler(json)    
 
-    var image = {
-      "type": "Image",
-      "url": json.images[0].url
+    if (json.hasOwnProperty('images')) {
+      var image = {
+        "type": "Image",
+        "url": json.images[0].url
+      }
+      heroCard.body.unshift(image)
     }
-    heroCard.body.unshift(image)
+
     return this.adaptiveCardsHandler(heroCard)              
   }
 
-  heroCardActionToAdaptiveCardAction(actions) {
+  BotFrameworkActionToAdaptiveCardAction(actions) {
     var response = []
     actions = actions || []
     actions.forEach((a) => {
@@ -1584,8 +1589,9 @@ class Hadron {
     audio.src      = json.media[0].url
     audio.autoPlay = json.autostart
     audio.loop     = json.autoloop
-    audio.poster   = json.image
-    console.log(audio)
+    if (json.image) {
+      audio.poster   = json.image
+    }  
     return this.mediaHandler(json, audio)
   }
 
@@ -1605,7 +1611,9 @@ class Hadron {
     video.src      = json.media[0].url
     video.autoPlay = json.autostart
     video.loop     = json.autoloop
-    video.poster   = json.image
+    if (json.image) {
+      video.poster   = json.image 
+    }
     return this.mediaHandler(json, video)
   }
 
@@ -1645,21 +1653,20 @@ class Hadron {
   }
 
   commonCardHandler(json) {    
-    var commonCard = {
-      "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
-      "type": "AdaptiveCard",
-      "version": "1.0",    
-      "body": [
-        {
-          "type": "TextBlock",
-          "id": "Title",
-          "horizontalAlignment": "Left",
-          "size": "Medium",
-          "weight": "Bolder",
-          "wrap": true,
-          "text": json.title
-        },        
-        {
+    var body = []
+    if (json.hasOwnProperty('title')) {
+      body.push({
+            "type": "TextBlock",
+            "id": "Title",
+            "horizontalAlignment": "Left",
+            "size": "Medium",
+            "weight": "Bolder",
+            "wrap": true,
+            "text": json.title
+          })
+    }
+    if (json.hasOwnProperty('subtitle')) {
+      body.push({
           "type": "TextBlock",
           "id": "Subtitle",
           "horizontalAlignment": "Left",
@@ -1667,35 +1674,58 @@ class Hadron {
           "text": json.subtitle,
           "wrap": true,
           "isSubtle": true
-        },
-        {
+        })
+    }
+    if (json.hasOwnProperty('text')) {
+        body.push({
           "type": "TextBlock",
           "id": "Text",
           "horizontalAlignment": "Left",
           "size": "default",
           "text": json.text,
           "wrap": true,          
-        }              
-      ],
-      "actions": this.heroCardActionToAdaptiveCardAction(json.buttons)
+        })
+    }
+    var actions = [] 
+    if (json.hasOwnProperty('buttons')) {
+      actions = this.BotFrameworkActionToAdaptiveCardAction(json.buttons)
+    }
+  
+    var commonCard = {
+      "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
+      "type": "AdaptiveCard",
+      "version": "1.0",    
+      "body": body,
+      "actions": actions
     }  
     return commonCard
   }
 
-  adaptiveCardsHandler(card) {
+  adaptiveCardsHandler(card, customConfig, customStyle) {    
     var adaptiveCard = new AdaptiveCards.AdaptiveCard();
-    adaptiveCard.hostConfig = new AdaptiveCards.HostConfig({
+    var defaultConfig = {
       "actions": {
+        "actionAlignment": "stretch",
         "actionsOrientation": "vertical",
-        "buttonSpacing": 5
+        "buttonSpacing": 6,
+        "maxActions": 20
       },
-    });
+      "spacing": {
+        "padding": 1
+      }
+    }
+    
+    var config = {...defaultConfig, ...customConfig}
+    adaptiveCard.hostConfig = new AdaptiveCards.HostConfig(config);
     
     adaptiveCard.onExecuteAction = (action) => { 
       console.log("Triggered submit action from adaptive card: ", action)
       if (action.constructor.name == 'SubmitAction') {
-        if (action.data.hasOwnProperty('imBack')) {
+        if (action.data.hasOwnProperty('imBack')) { //does this work?
           this.userSaid(action.data.imBack)
+        }      
+        if (action.data.hasOwnProperty('value')) {
+          this.userSaid(action.data.value)
         }      
       }
       if (action.constructor.name == 'OpenUrlAction') {
@@ -1703,18 +1733,23 @@ class Hadron {
       }
       this.inputText.focus(); // clicking on actions takes focus out of input text field
     }
-    
+
+    console.log('Rendering adaptive card: ', card)
+    console.log('with host config: ', config)
+    console.log('and style: ', customStyle)
+
     adaptiveCard.parse(card);
     var renderedCard = adaptiveCard.render();
     var style = renderedCard.getAttribute('style');
-    renderedCard.setAttribute('style', 'width: 100%; ' + style)
+    renderedCard.setAttribute('style', 'width: 100%; ' + style + ' ' + customStyle)
     return renderedCard    
   }
 
 
   // wrap image
   imageHandler(json) {
-    var card  = '<img src="' + json + '" class="responsive-img" />';
+    //only difference between image card and herocard is it doesn't have text
+    var card  = this.heroCardHandler(json) 
     return card;
   }
 
@@ -1906,8 +1941,9 @@ class Hadron {
       ttsTimeScale = window.inAvatar.options.ttsTimeScale      
     } else {
       ttsTimeScale = this.ttsTimeScale
-    }
+    }    
     var req_params = {
+        'channelId': 'hadron',
         'orgId': 1,
         'botId': this.botId,
         'userId': this.userId,   
