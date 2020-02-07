@@ -1720,17 +1720,18 @@ class Hadron {
     
     adaptiveCard.onExecuteAction = (action) => { 
       console.log("Triggered submit action from adaptive card: ", action)
-      if (action.constructor.name == 'SubmitAction') {
+      //tried with class name first but some times it gets 'e' as name
+      if (action.getJsonTypeName() == 'Action.Submit') { 
         if (action.data.hasOwnProperty('imBack')) { //does this work?
           this.userSaid(action.data.imBack)
-        }      
-        if (action.data.hasOwnProperty('value')) {
+        } else if (action.data.hasOwnProperty('value')) {
           this.userSaid(action.data.value)
         }      
       }
-      if (action.constructor.name == 'OpenUrlAction') {
+      if (action.getJsonTypeName() == 'Action.OpenUrl') {
         var win = window.open(action.url, '_blank')        
       }
+
       this.inputText.focus(); // clicking on actions takes focus out of input text field
     }
 
