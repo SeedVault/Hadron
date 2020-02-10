@@ -1321,16 +1321,12 @@ export class HadronAvatar {
     return result;
   }
 
-
-  
-
   processMessages(messages) {
     if (inControl.use3DTextPanel == true) {
       var speeches = [];
       for (var index = 0, len = messages.length; index < len; ++index) {
-        if (messages[index].speech != "") {
-          var spoke = inControl.parseBotResponse(messages[index].speech);
-          speeches.push(spoke);
+        if (messages[index].speech != "") {          
+          speeches.push(messages[index].speech);
         }
       }
 
@@ -1339,7 +1335,6 @@ export class HadronAvatar {
       this.textPanelContent.html(cleanMessages);
     }
   }
-
 
   initialGreeting() {
     var msg = {speech: "..."};
