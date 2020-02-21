@@ -156,7 +156,7 @@ class Hadron {
       this.pubToken           = this.getControlData("bot-publisher-token", "")
       this.widerBy            = this.getControlData("bot-wider-by", 32); // add a little extra width to quarks to make sure they don't break
       this.sidePadding        = this.getControlData("bot-side-padding", 6); // padding on both sides of chat quarks
-      this.recallInteractions = this.getControlData("bot-recall-interactions", 0); // number of interactions to be remembered and brought back upon restart
+      this.recallInteractions = this.getControlData("bot-recall-interactions", false, "bool"); // number of interactions to be remembered and brought back upon restart
       this.buttonClass        = this.getControlData("bot-button-class", "botanic-button");
       this.botSaysClass       = this.getControlData("bot-button-class", "botanic-green");      
       this.botReplyClass      = this.getControlData("bot-reply-class", "botanic-silver");
@@ -931,6 +931,9 @@ class Hadron {
     
     } else if (command == 'avatar') {
       this.avatarEnable(params)
+
+    } else if (command == 'avatardemo') {
+      window.inAvatar.playMorphDemo()
 
     } else if (command == 'avatarconfig') {
       this.avatar3dGuiConfig(params)

@@ -83,7 +83,7 @@ export class HadronAvatar {
 
     this.useShadows       = true;
 
-    this.copyCamera = true;
+    this.copyCamera = false;
 
     this.showStats = false;
     this.stats = false;
@@ -188,12 +188,15 @@ export class HadronAvatar {
     this.loaderTarget = avatarDefinition.loaderTarget; // | this.loaderTarget;
     this.loaderTargetFormat = avatarDefinition.loaderTargetFormat; // | this.loaderTargetFormat;
     this.loaderTargetAnimation = avatarDefinition.loaderTargetAnimation; // | this.loaderTargetAnimation;
+    this.textureFile = avatarDefinition.textureFile
 
     this.options.stepSize = avatarDefinition.stepSize || 3;
     this.initialAnimation = avatarDefinition.initialAnimation || false;
     this.acknowledgeAnimation = avatarDefinition.acknowledgeAnimation || false;
 
     this.avatarAnimations = avatarDefinition.avatarAnimations || []
+
+    this.avatarType = avatarDefinition.avatarType || ''
 
     this.avatarDefaultCameraPositionX = window.inControl.use3DAvatarCamPosX !== null ? window.inControl.use3DAvatarCamPosX : avatarDefinition.defaultCameraPositionX
     this.avatarDefaultCameraPositionY = window.inControl.use3DAvatarCamPosY !== null ? window.inControl.use3DAvatarCamPosY : avatarDefinition.defaultCameraPositionY
@@ -209,6 +212,8 @@ export class HadronAvatar {
     this.envMap = false;
 
     this.renderAs = avatarDefinition.renderAs;
+
+    this.eyebrowsActive = false
 
     this.backfaceMaterial = avatarDefinition.backfaceMaterial;
     this.showWireframe = avatarDefinition.showWireframe;
@@ -295,7 +300,7 @@ export class HadronAvatar {
 
   // Create the lighting
   createLighting() {
-    this.light1 = new THREE.AmbientLight( 0x9b3131, this.options.ambientIntensity );
+  /*  this.light1 = new THREE.AmbientLight( 0x9b3131, this.options.ambientIntensity );
     this.light1.name = 'ambient_light';
     this.scene.add( this.light1 );
 
@@ -307,13 +312,13 @@ export class HadronAvatar {
 
     if (this.usePointLight) {
       this.light2l = new THREE.PointLight( this.options.pointColorLeft, this.options.pointIntensityLeft, this.maxSize * 0.5);
-      this.light2l.position.set(this.maxSize * -0.15, this.maxSize * 0.33, 0 /* this.maxSize * 0.25 */);
+      this.light2l.position.set(this.maxSize * -0.15, this.maxSize * 0.33, 0 /* this.maxSize * 0.25 *//*);
       this.light2l.name = 'main_light_left';
       this.scene.add( this.light2l );
 
 
       this.light2r = new THREE.PointLight( this.options.pointColorRight, this.options.pointIntensityRight, this.maxSize * 0.5);
-      this.light2r.position.set(this.maxSize * 0.15, this.maxSize * 0.33, 0 /* this.maxSize * 0.25 */);
+      this.light2r.position.set(this.maxSize * 0.15, this.maxSize * 0.33, 0 /* this.maxSize * 0.25 *//*);
       this.light2r.name = 'main_light_right';
       this.scene.add( this.light2r );
     }
@@ -347,9 +352,11 @@ export class HadronAvatar {
       this.scene.add( pointLightHelperR );
     }
 
-    this.light3 = new THREE.HemisphereLight( 0xbbbbff, 0xffff00 );
-	this.light3.position.set( 0.0, this.maxSize, this.maxSize );
-	this.scene.add( this.light3 );
+    this.light3 = new THREE.HemisphereLight(this.options.skyColor, this.options.groundColor);
+	  this.light3.position.set( 0.0, this.maxSize, this.maxSize );
+	  this.scene.add( this.light3 );
+    */
+   this.scene.add( new THREE.HemisphereLight( 0xffffff, 0xffffff ) );
   }
 
 
@@ -719,6 +726,25 @@ export class HadronAvatar {
 
       this.renderer.toneMappingExposure = 1.2;
       this.renderer.toneMappingWhitePoint = 1.0;
+    } else if (this.renderAs == 'avatarsdk') {
+      this.options.useEnvMap = true;
+      this.options.useToonMaterial  = false;
+      this.options.useVignette = false;
+      this.options.useBits = false;
+      this.options.useSepia = false;
+      this.options.useOutline = false;
+
+      this.options.directionalIntensity = 0;
+      this.options.ambientIntensity = 0;
+      this.options.ambientColor = '#ffffff';
+      this.options.pointIntensityLeft = 0
+      this.options.pointIntensityRight = 0      
+      this.options.skyColor = '#ffffff',
+      this.options.groundColor = '#000000',
+
+
+      this.renderer.toneMappingExposure = 1.2;
+      this.renderer.toneMappingWhitePoint = 1.0;
     } else if (this.renderAs == 'soft') {
       this.options.useEnvMap = false;
       this.options.useToonMaterial  = true;
@@ -745,157 +771,185 @@ export class HadronAvatar {
   // pass path to a remote resource to override the default avatar
   startAvatar2() {
     return new Promise((resolve, reject) => {
-      if (!this.isWebGLAvailable()) {      
-        inControl.showToast('WebGL not supported!');
-      }
+      try {
 
-      // This feels like a config var but can't be since THREE isn't loaded when the config is created.  Must be here.
-      if (this.backfaceMaterial == "THREE.DoubleSide") {
-        this.backfaceMaterial = THREE.DoubleSide;
-      } else {
-        this.backfaceMaterial = THREE.FrontSide;
-      }
-
-      this.clock = new THREE.Clock();
-
-      this.createRenderer();
-
-      this.initialSettings();
-
-      // Create the scene
-      this.createScene();
-
-      this.cameraOveridden = true;
-
-      if (this.isRandomCamera == false) {
-        this.createCamera();
-      } else {
-        this.createRandomCamera();
-      }
-
-      this.createControls();
-
-      // Load the cubemap if Enabled
-      this.createCubemap();
-
-      // model loader
-      var manager = new THREE.LoadingManager();
-
-      manager.onProgress = function (item, loaded, total) {
-        inControl.consoleLog(item, loaded, total);
-      };
-
-      var loader;
-
-      if (this.loaderTargetFormat == "glb") {
-        loader = new GLTFLoader();
-      } else {
-        loader = new FBXLoader();
-      }
-
-      loader.setCrossOrigin('');
-
-      // test for https, if not we build a local link like always.
-      var fullPathToTargetModel = Config.all_your_bases_are_belong_to_us + "assets/avatars/" + this.loaderTarget;
-
-      if (this.loaderTarget.includes('https:') || this.loaderTarget.includes('http:')) {
-        fullPathToTargetModel = this.loaderTarget;
-      }
-
-      loader.load(fullPathToTargetModel, (object) => {console.log(object)
-        if (this.loaderTargetFormat == "glb") {
-          this.model = object.scene || object.scenes[0];
-        } else {
-          this.model = object;
+        if (!this.isWebGLAvailable()) {      
+          inControl.showToast('WebGL not supported!');
         }
 
-        this.clips = object.animations || [];
+        // This feels like a config var but can't be since THREE isn't loaded when the config is created.  Must be here.
+        if (this.backfaceMaterial == "THREE.DoubleSide") {
+          this.backfaceMaterial = THREE.DoubleSide;
+        } else {
+          this.backfaceMaterial = THREE.FrontSide;
+        }
 
-        var beta = 0.0;
-        var specularColor = new THREE.Color( beta * 0.2, beta * 0.2, beta * 0.2 );
+        this.clock = new THREE.Clock();
 
-        var alpha = 0.0;
-        var specularShininess = Math.pow( 2, alpha * 10 );
+        this.createRenderer();
 
-        this.outlineTargets = [];
+        this.initialSettings();
 
-        this.model.traverse((child) => {
-          if (child.isCamera && this.copyCamera == true) {
-            console.log("Switched to avatar camera");
+        // Create the scene
+        this.createScene();
 
-            this.cameraOveridden = true;
+        this.cameraOveridden = true;
 
-            this.defaultCamera.copy(child);
-            this.defaultCamera.aspect = this.container.width() / this.container.height();
+        if (this.isRandomCamera == false) {
+          this.createCamera();
+        } else {
+          this.createRandomCamera();
+        }
 
-            this.defaultCamera.updateProjectionMatrix();
+        this.createControls();
+
+        // Load the cubemap if Enabled
+        this.createCubemap();
+
+        // model loader
+        var manager = new THREE.LoadingManager();
+
+        manager.onProgress = function (item, loaded, total) {
+          inControl.consoleLog(item, loaded, total);
+        };
+        
+        manager.setURLModifier( (url) => {
+          console.log('trying to load: ' + url)
+          // this function is called for each asset request
+          if (url.endsWith('.jpg')) {
+              url = '/assets/avatars/' + this.textureFile
+          }
+          return url;
+        })
+
+        var loader;
+
+        if (this.loaderTargetFormat == "glb") {
+          loader = new GLTFLoader(manager);
+        } else {
+          loader = new FBXLoader(manager);
+        }
+
+        loader.setCrossOrigin('');
+
+        // test for https, if not we build a local link like always.
+        var fullPathToTargetModel = Config.all_your_bases_are_belong_to_us + "assets/avatars/" + this.loaderTarget;
+
+        if (this.loaderTarget.includes('https:') || this.loaderTarget.includes('http:')) {
+          fullPathToTargetModel = this.loaderTarget;
+        }
+
+        loader.load(fullPathToTargetModel, (object) => {console.log(object)
+          if (this.loaderTargetFormat == "glb") {
+            this.model = object.scene || object.scenes[0];
+          } else {
+            this.model = object;
           }
 
-        if (child.isMesh) {
+          this.clips = object.animations || [];
 
-            this.meshes[child.name] = child
+          var beta = 0.0;
+          var specularColor = new THREE.Color( beta * 0.2, beta * 0.2, beta * 0.2 );
 
-            child.material.side = this.backfaceMaterial;
-            child.material.wireframe = this.showWireframe;
-            this.outlineTargets.push(child);
+          var alpha = 0.0;
+          var specularShininess = Math.pow( 2, alpha * 10 );
 
-            if (this.options.useToonMaterial == true) {
-              child.material.roughness = 1.0;
-            } else if (this.renderAs == 'pbr') {
-              child.material.roughness = 0.0;
+          this.outlineTargets = [];
+
+          this.model.traverse((child) => {
+            if (child.isCamera && this.copyCamera == true) {
+              console.log("Switched to avatar camera");
+
+              this.cameraOveridden = true;
+
+              this.defaultCamera.copy(child);
+              this.defaultCamera.aspect = this.container.width() / this.container.height();
+
+              this.defaultCamera.updateProjectionMatrix();
             }
 
+          if (child.isPointLight) {
+            //do not use pointlight from model
+            child = {}
+            return
+          }
 
-            if (this.useCubeMap && this.options.useEnvMap == true) {
-              if (this.envMap) {
-                child.material.envMap = this.envMap;
+
+          if (child.isMesh) {
+
+              this.meshes[child.name] = child
+
+              child.material.side = this.backfaceMaterial;
+              child.material.wireframe = this.showWireframe;
+              this.outlineTargets.push(child);
+              console.log('Found mesh: ' + child.name)
+
+              if (this.options.useToonMaterial == true) {
+                child.material.roughness = 1.0;
+              } else if (this.renderAs == 'pbr' || this.renderAs == 'avatarsdk') {
+                child.material.roughness = 0.0;
+              }
+
+
+              if (this.useCubeMap && this.options.useEnvMap == true) {
+                if (this.envMap) {
+                  child.material.envMap = this.envMap;
+                }
+              }
+
+              if (this.useShadows == false) {
+                child.castShadow = true;
+                child.receiveShadow = true;
               }
             }
+          });
 
-            if (this.useShadows == false) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
+          this.scene.add(this.model);
+
+          this.setViewForModel(this.model);
+
+          this.createGroundplane();
+
+          this.createLighting();
+
+          this.createEffects();
+
+          this.createGUI();
+
+          this.createTextPanel();
+          this.initialGreeting();
+
+          this.rendererIsStable = true;
+
+          if (inControl.ttsEnabled == false && inControl.ttsVisible == true) {
+            inControl.showToast('Please press the speaker icon to allow the avatar to talk');
           }
-        });
 
-        this.scene.add(this.model);
+          // Chain animation loading?
+          this.mixer = new THREE.AnimationMixer(this.model);
+          this.enumerateAnimations();
 
-        this.setViewForModel(this.model);
+          this.blinkEyes()
+          this.eyebrows()
 
-        this.createGroundplane();
+          this.render();                
+          resolve()
 
-        this.createLighting();
+        }, undefined, function (e) {
+          inControl.consoleLog(e);
+          reject()
+        })
+        this.createStats();
+        this.animate();
 
-        this.createEffects();
-
-        this.createGUI();
-
-        this.createTextPanel();
-        this.initialGreeting();
-
-        this.rendererIsStable = true;
-
-        if (inControl.ttsEnabled == false && inControl.ttsVisible == true) {
-          inControl.showToast('Please press the speaker icon to allow the avatar to talk');
-        }
-
-        // Chain animation loading?
-        this.mixer = new THREE.AnimationMixer(this.model);
-        this.enumerateAnimations();
-
-        this.render();                
-        resolve()
-
-      }, undefined, function (e) {
-        inControl.consoleLog(e);
-        reject()
-      })
-      this.createStats();
-      this.animate();
+      } catch(e) {
+        console.log(e)
+      }      
 
     })
   }
+
+
 
   isWebGLAvailable() {
     try {
@@ -908,7 +962,9 @@ export class HadronAvatar {
 
   setDefaultCameraPosition() {    
     if (this.avatarDefaultCameraPositionX !== null) {
-      this.defaultCamera.position.set(this.avatarDefaultCameraPositionX, this.avatarDefaultCameraPositionY, this.avatarDefaultCameraPositionZ)
+      this.defaultCamera.position.x = this.avatarDefaultCameraPositionX
+      this.defaultCamera.position.y = this.avatarDefaultCameraPositionY
+      this.defaultCamera.position.z = this.avatarDefaultCameraPositionZ
       console.log('default camera position', this.defaultCamera.position)
       this.controls.update()
     }   
@@ -921,6 +977,89 @@ export class HadronAvatar {
     }
   }
 
+  blinkEyes() {
+    if (this.avatarType != 'avatarsdk') { return }
+
+    var timesA =  [ 0, 1, 2 ];
+    var timesB =  [ 0, 1, 2 ];
+    var valuesA = [ 0, 1, 0 ];
+    var valuesB = [ 0, 1, 0 ];
+    var trackA = new THREE.VectorKeyframeTrack( '.morphTargetInfluences[EyeBlink_L]', timesA, valuesA, THREE.InterpolateLinear );
+    var trackB = new THREE.VectorKeyframeTrack( '.morphTargetInfluences[EyeBlink_R]', timesB, valuesB, THREE.InterpolateLinear );
+    
+    var clip = new THREE.AnimationClip( 'eyeblink', undefined, [ trackA, trackB ] );
+
+    this.eyesMixer = new THREE.AnimationMixer(this.getMeshWithHead());				                 
+    this.eyesAnimation = this.eyesMixer.clipAction(clip);
+    this.eyesAnimation.setLoop(THREE.LoopOnce)
+    this.eyesAnimation.setDuration(0.2)    
+    
+    this.startBlink()
+  }
+
+  startBlink() {
+    if (this.avatarType != 'avatarsdk') { return }
+
+    var rand = (Math.random() * 6000) + 250
+    setTimeout(() => {
+            this.doBlink()
+            this.startBlink()
+    }, rand);
+  }
+
+
+  doBlink() {
+    if (this.avatarType != 'avatarsdk') { return }
+
+    console.log('Playing eye blink animation')
+    this.eyesAnimation.reset()
+    this.eyesAnimation.play()
+  }
+
+  eyebrows() {
+    if (this.avatarType != 'avatarsdk') { return }
+
+    var timesA =  [ 0,  1,   5,   6 ];
+    var timesB =  [ 0,  1,   5,   6 ];
+    var valuesA = [ 0,  0.2, 0.2, 0 ];
+    var valuesB = [ 0,  0.5, 0.7, 0 ];
+    var trackA = new THREE.VectorKeyframeTrack( '.morphTargetInfluences[BrowsU_R]', timesA, valuesA, THREE.InterpolateLinear );
+    var trackB = new THREE.VectorKeyframeTrack( '.morphTargetInfluences[BrowsU_L]', timesB, valuesB, THREE.InterpolateLinear );
+    
+    var clip = new THREE.AnimationClip( 'eyebrows', undefined, [ trackA, trackB ] );
+
+    this.eyebrowsMixer = new THREE.AnimationMixer(this.getMeshWithHead());				                 
+    this.raiseEyebrowsAnimation = this.eyebrowsMixer.clipAction(clip);
+    this.raiseEyebrowsAnimation.setLoop(THREE.LoopOnce)
+    this.raiseEyebrowsAnimation.setDuration(1.5)    
+    
+  }
+
+  raiseEyebrows() {
+    if (this.avatarType != 'avatarsdk') { return }
+    
+    if (this.eyebrowsActive) {
+      if (Date.now() - this.raiseEyebrowsTime > 5000 || !this.raiseEyebrowsTime) {
+        this.raiseEyebrowsTime = Date.now()
+        console.log('Playing eyebrowse animation')
+        this.raiseEyebrowsAnimation.reset()
+        this.raiseEyebrowsAnimation.setDuration((Math.random() * 2) + 0.5)    
+        this.raiseEyebrowsAnimation.play()
+      }
+    }
+  }
+
+  startEyebrows() {
+    if (this.avatarType != 'avatarsdk') { return }
+    console.log('start eyebrowse')
+    this.eyebrowsActive = true
+  }
+  stopEyebrows() {
+    if (this.avatarType != 'avatarsdk') { return }
+    console.log('stop eyebrowse')
+    this.eyebrowsActive = false
+  }
+  
   enumerateAnimations() {
     this.animCtrls = [];
     var al = []
@@ -973,7 +1112,7 @@ export class HadronAvatar {
         
       }
 
-      this.avatarState('neutral')
+      this.avatarState('neutral')      
     }
   }
 
@@ -1216,14 +1355,20 @@ export class HadronAvatar {
   }
 
   getClipAnimationsByStateName(stateName) {
-    return this.avatarClipActions[stateName]    
+    if (this.avatarClipActions && this.avatarClipActions.hasOwnProperty(stateName)) {
+      return  this.avatarClipActions[stateName]
+    }
+    return []
   }
 
   getAnimationsNameByStateName(state) {
-    return this.avatarAnimations[state]
+    if (this.avatarAnimations && this.avatarAnimations.hasOwnProperty(state)) {      
+      return this.avatarAnimations[state]
+    }
+    return []
   }
   
-  avatarState(state, duration) {
+  avatarState(state, duration) {    
     console.log('Avatar state to: ' + state)
     duration = duration || 0.5
     this.avatarState == state;
@@ -1234,17 +1379,17 @@ export class HadronAvatar {
 
     var runningAnimations = this.getRunningAnimations()           
     
-      //console.log('will fade to:', animNames)
-      cas.forEach((ca) => {            
-        if (runningAnimations.length) {
-          ca.reset()          
-          ca.play()       
-          ca.fadeOut(0.01)     
-          this.crossFadeToAnimation(ca, duration, animNames) 
-        } else {
-          ca.reset()
-          ca.play()
-        }
+    //console.log('will fade to:', animNames)
+    cas.forEach((ca) => {            
+      if (runningAnimations.length) {
+        ca.reset()          
+        ca.play()       
+        ca.fadeOut(0.01)     
+        this.crossFadeToAnimation(ca, duration, animNames) 
+      } else {
+        ca.reset()
+        ca.play()
+      }
   /*
         ca.reset()      
         ca.play()
@@ -1255,7 +1400,7 @@ export class HadronAvatar {
         console.log('playing and fadein ' + ca.getClip().name)*/
       })
       //this.fadeOutAllAnimations(animNames)
-
+  
   }
 
 
@@ -1297,6 +1442,19 @@ export class HadronAvatar {
        if( window.inAvatar.mouthMixer) {                           
           window.inAvatar.mouthMixer.update(delta);        
       }
+
+      if( window.inAvatar.eyesMixer) {                           
+          window.inAvatar.eyesMixer.update(delta);        
+      }
+
+      if( window.inAvatar.eyebrowsMixer) {                           
+        window.inAvatar.eyebrowsMixer.update(delta);        
+      }
+
+      if( window.inAvatar.demoMixer) {                           
+        window.inAvatar.demoMixer.update(delta);        
+      }
+
 
       window.inAvatar.render();
 
@@ -1368,12 +1526,25 @@ export class HadronAvatar {
       () => {
       // End callback
           this.stopMouthVisemes()
+          this.stopEyebrows()
           this.avatarState('neutral', 0.5);
+          
         }
       );
     }
   }
 
+  playMorphDemo() {
+    this.demoMixer = new THREE.AnimationMixer(this.getMeshWithHead());				                 
+    var mt = this.getMeshWithHead().geometry.morphAttributes.position //get all morphtargets
+    var sequence = THREE.AnimationClip.CreateFromMorphTargetSequence('demo', mt, this.fps, true);          
+    var animation = this.demoMixer.clipAction(sequence);
+    animation.setLoop(THREE.LoopOnce)          
+    animation.clampWhenFinished = false          
+    animation.setDuration(mt.length / 2)          
+    animation.weight = 1
+    animation.play()      
+  }
 
   playMouthVisemes(visemes) {
     setTimeout(() => {
@@ -1383,7 +1554,7 @@ export class HadronAvatar {
       prevDuration = 0
       this.visemeAnimations = []
         
-      this.mouthMixer = new THREE.AnimationMixer(this.meshes['head_geo']);				                 
+      this.mouthMixer = new THREE.AnimationMixer(this.getMeshWithHead());				                 
 
       for (var i = 0; i < visemes.length; i++) { 
           currViseme = visemes[i]
@@ -1406,6 +1577,7 @@ export class HadronAvatar {
           //console.log(mt)
           var animName = currViseme.value + '_' + nextViseme.value
           var sequence = THREE.AnimationClip.CreateFromMorphTargetSequence(animName, mt, this.fps, true);
+          console.log('mouthMixer:', this.mouthMixer)
           var animation = this.mouthMixer.clipAction(sequence);
           animation.setLoop(THREE.LoopOnce)
           var duration = nextViseme.duration
@@ -1419,6 +1591,16 @@ export class HadronAvatar {
           animation.setDuration(setDuration)
           animation.startAt(prevDuration / 1000)
           animation.weight = 1
+
+          //eyerows movement
+          //raise them when starting a word but not in the first word sentence. also at random 50/50
+          if (currViseme.value == 'sil' && Math.random() > 0.5 && i != 0) {                
+            setTimeout(() => {
+              this.raiseEyebrows()
+            }, prevDuration)
+          }
+          this.startEyebrows()
+          
 
           this.visemeAnimations.push(animation)
           //console.log("Queued animation from " + currViseme.value + " to " + nextViseme.value + " - duration " + setDuration + " - startAt: " + prevDuration / 1000)
@@ -1444,10 +1626,27 @@ export class HadronAvatar {
 
   }
 
-  getMorphTarget(avatarType, visemes) {
-    //console.log('trying to find viseme morphtarget for viseme ' + visemes)
-    return this.getMorphTargetForJackie(visemes)
+  getMorphTarget(avatarType, visemes) {    
+    console.log('Find viseme morphtarget for viseme: ' + visemes)
+    var morph
+    if (avatarType == 'avatarsdk') {
+      morph = this.getMorphTargetForAvatarSDK(visemes)  
+    } else {
+      morph = this.getMorphTargetForJackie(visemes)
+    }
+    console.log('Morphtarget: ', morph)
+    return morph
+    
   }
+  
+  getMeshWithHead() {
+    if (this.avatarType == 'avatarsdk') {
+      return this.meshes['Head']
+    } else {
+      return this.meshes['head_geo']
+    }
+  }
+
   
   /**
    * polly   jackie viseme blendshape    phoneme                     example word
@@ -1494,6 +1693,49 @@ export class HadronAvatar {
     }
     return this.meshes['head_geo'].geometry.morphAttributes.position[map[viseme]]
   }
+
+  /*
+  0   AA  A:              cAr                 a
+  6   CH  tS, dZ, S	      CHair, Join, SHe    S
+  11  EE  e               bEd, ArenA, readER  e, @
+  22  IH  i               bIt                 i
+  46  OH                  thOught, chOIce, Goat     O, o
+  47  OU  ou, u           We, tWO             u
+  50  TH  th              Thin                T
+  51  DD  t, d (or nn?)   Tip, Doll           t
+  52  FF  v, f            Five                f
+  54  kk  k, g	          Call, Gas           k
+  56  pp   p, b, m        Put, Bat, Mat       p
+  57  rr   r              Read                r
+  x   sil                                     sil
+  59  ss   s, z           Seem, Zero          s
+  
+  */
+  getMorphTargetForAvatarSDK(viseme) {    
+    var map = {
+      'p': 56,
+      't': 51,
+      'S': 6,
+      'T': 50,
+      'f': 52,
+      'k': 54,
+      'i': 22,      
+      'r': 57,
+      's': 59,
+      'u': 47,
+      '@': 11,//reusing e/E
+      'a': 0,      
+      'e': 11,     
+      'E': 11, 
+      'o': 46,
+      'O': 46,      
+      'sil': 57,
+      //'head_eyeBlinkL': 12,
+      //'head_eyeBlinkR': 13,      
+    }
+    return this.meshes['Head'].geometry.morphAttributes.position[map[viseme]]
+  }
+
 
   createRandomCamera() {
     var randomPoints = [];
@@ -1646,6 +1888,28 @@ export class HadronAvatar {
 
       avatarDefinition.renderAs = 'pbr';    
     
+    } else if (param == 'mark') {
+      avatarDefinition.avatarType = 'avatarsdk'
+      avatarDefinition.loaderTarget = "mark_h12_bl_fbx0/untitled3.fbx";
+      avatarDefinition.textureFile = "mark_h12_bl_fbx0/mark-texture.jpg"
+      avatarDefinition.loaderTargetFormat = "fbx";
+      avatarDefinition.showGroundPlane = false;
+      avatarDefinition.useCubeMap = false;
+      avatarDefinition.renderAs = 'avatarsdk';
+      avatarDefinition.cubeName = '';
+      avatarDefinition.cubeExtension = '';
+
+      avatarDefinition.defaultCameraPositionX = 0
+      avatarDefinition.defaultCameraPositionY = 11.5
+      avatarDefinition.defaultCameraPositionZ = 72
+
+      avatarDefinition.defaultCameraLookAtX = null
+      avatarDefinition.defaultCameraLookAtY = null
+      avatarDefinition.defaultCameraLookAtZ = null
+
+      window.inControl.ttsVoiceId = 7
+      window.inControl.ttsLocale = 'en_US'
+  
     } else {
       avatarDefinition.loaderTarget = "jackie_final_short/em10_mouth_iconics.gltf";
       avatarDefinition.showGroundPlane = false;
@@ -1667,9 +1931,9 @@ export class HadronAvatar {
       avatarDefinition.defaultCameraLookAtZ = null   
 
     }
-
-    await this.startAvatar(avatarDefinition);
-
+    
+      await this.startAvatar(avatarDefinition);
+    
   }
 }
 
