@@ -606,11 +606,16 @@ export class HadronAvatar {
     });
 
 
-    var cam = gui.addFolder('Camera');
-    cam.add(this.defaultCamera.position, 'x', 0, this.maxSize).listen();
-    cam.add(this.defaultCamera.position, 'y', 0, this.maxSize).listen();
-    cam.add(this.defaultCamera.position, 'z', 0, this.maxSize).listen();
+    var cam = gui.addFolder('Camera Position');
+    cam.add(this.defaultCamera.position, 'x', -this.maxSize, this.maxSize).listen();
+    cam.add(this.defaultCamera.position, 'y', -this.maxSize, this.maxSize).listen();
+    cam.add(this.defaultCamera.position, 'z', -this.maxSize, this.maxSize).listen();
 
+    var camt = gui.addFolder('Camera Target');
+    camt.add(this.controls.target, 'x', -this.maxSize, this.maxSize).listen();
+    camt.add(this.controls.target, 'y', -this.maxSize, this.maxSize).listen();
+    camt.add(this.controls.target, 'z', -this.maxSize, this.maxSize).listen();
+    
     gui.close();
     
     var guiInner = $('<div>', {id: 'guiInner'});
@@ -972,9 +977,9 @@ export class HadronAvatar {
       this.controls.update()
     }   
     if (this.avatarDefaultCameraLookAtX !== null) {            
-      this.controls.target = new THREE.Vector3(this.avatarDefaultCameraLookAtX, 
-                                                this.avatarDefaultCameraLookAtY, 
-                                                this.avatarDefaultCameraLookAtZ)
+      this.controls.target.x = this.avatarDefaultCameraLookAtX
+      this.controls.target.y = this.avatarDefaultCameraLookAtY
+      this.controls.target.z = this.avatarDefaultCameraLookAtZ
       console.log('camera target', this.controls.target)
       this.controls.update()
     }
@@ -987,6 +992,14 @@ export class HadronAvatar {
       this.defaultCamera.position.y += camPos[this.avatarName][1]
       this.defaultCamera.position.z += camPos[this.avatarName][2]
       console.log('final camera position', this.defaultCamera.position)
+      this.controls.update()
+    }
+    if (window.inControl.use3DAvatarCamTargetPos) {
+      var camtPos = JSON.parse(window.inControl.use3DAvatarCamTargetPos)
+      this.controls.target.x += camtPos[this.avatarName][0]
+      this.controls.target.y += camtPos[this.avatarName][1]
+      this.controls.target.z += camtPos[this.avatarName][2]
+      console.log('final camera position', this.controls.target)
       this.controls.update()
     }
   }
@@ -1915,13 +1928,13 @@ export class HadronAvatar {
       avatarDefinition.cubeName = '';
       avatarDefinition.cubeExtension = '';
 
-      avatarDefinition.defaultCameraPositionX = 0
-      avatarDefinition.defaultCameraPositionY = 0
-      avatarDefinition.defaultCameraPositionZ = 72
+      avatarDefinition.defaultCameraPositionX = 1
+      avatarDefinition.defaultCameraPositionY = 2.95
+      avatarDefinition.defaultCameraPositionZ = 56
 
-      avatarDefinition.defaultCameraLookAtX = null
-      avatarDefinition.defaultCameraLookAtY = null
-      avatarDefinition.defaultCameraLookAtZ = null
+      avatarDefinition.defaultCameraLookAtX = 1
+      avatarDefinition.defaultCameraLookAtY = 3
+      avatarDefinition.defaultCameraLookAtZ = 0
 
       window.inControl.ttsVoiceId = 7
       window.inControl.ttsLocale = 'en_US'
@@ -1939,13 +1952,18 @@ export class HadronAvatar {
       avatarDefinition.avatarAnimations['neutral'] = ['em10_d13000_head', 'em10_d8000_body']
       avatarDefinition.avatarAnimations['speaking'] = ['em10_d2000_head', 'em10_d8000_body']
 
-      avatarDefinition.defaultCameraPositionX = 15
-      avatarDefinition.defaultCameraPositionY = 70
-      avatarDefinition.defaultCameraPositionZ = 220
+      //avatarDefinition.defaultCameraPositionX = 15
+      //avatarDefinition.defaultCameraPositionY = 70
+      //avatarDefinition.defaultCameraPositionZ = 220
 
-      avatarDefinition.defaultCameraLookAtX = null
-      avatarDefinition.defaultCameraLookAtY = null
-      avatarDefinition.defaultCameraLookAtZ = null   
+      avatarDefinition.defaultCameraPositionX = 1
+      avatarDefinition.defaultCameraPositionY = 66
+      avatarDefinition.defaultCameraPositionZ = 56
+
+
+      avatarDefinition.defaultCameraLookAtX = 1
+      avatarDefinition.defaultCameraLookAtY = 73
+      avatarDefinition.defaultCameraLookAtZ = 0
 
     }
     
