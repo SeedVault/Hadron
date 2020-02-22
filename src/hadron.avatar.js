@@ -177,6 +177,8 @@ export class HadronAvatar {
   async startAvatar(avatarDefinition) {
     this.rendererIsStable = false;
 
+    this.avatarName = avatarDefinition.avatarName || ''
+
     this.groundPlanePosition = avatarDefinition.groundPlanePosition; // | this.groundPlanePosition;
     this.groundPlaneImage = avatarDefinition.groundPlaneImage; // | this.groundPlaneImage;
     this.showGroundPlane = avatarDefinition.showGroundPlane; // | this.showGroundPlane;
@@ -197,14 +199,14 @@ export class HadronAvatar {
     this.avatarAnimations = avatarDefinition.avatarAnimations || []
 
     this.avatarType = avatarDefinition.avatarType || ''
+    
+    this.avatarDefaultCameraPositionX = avatarDefinition.defaultCameraPositionX
+    this.avatarDefaultCameraPositionY = avatarDefinition.defaultCameraPositionY
+    this.avatarDefaultCameraPositionZ = avatarDefinition.defaultCameraPositionZ
 
-    this.avatarDefaultCameraPositionX = window.inControl.use3DAvatarCamPosX !== null ? window.inControl.use3DAvatarCamPosX : avatarDefinition.defaultCameraPositionX
-    this.avatarDefaultCameraPositionY = window.inControl.use3DAvatarCamPosY !== null ? window.inControl.use3DAvatarCamPosY : avatarDefinition.defaultCameraPositionY
-    this.avatarDefaultCameraPositionZ = window.inControl.use3DAvatarCamPosZ !== null ? window.inControl.use3DAvatarCamPosZ : avatarDefinition.defaultCameraPositionZ
-
-    this.avatarDefaultCameraLookAtX = window.inControl.use3DAvatarCamTargetPosX !== null ? window.inControl.use3DAvatarCamTargetPosX : avatarDefinition.defaultCameraLookAtX
-    this.avatarDefaultCameraLookAtY = window.inControl.use3DAvatarCamTargetPosY !== null ? window.inControl.use3DAvatarCamTargetPosY : avatarDefinition.defaultCameraLookAtY
-    this.avatarDefaultCameraLookAtZ = window.inControl.use3DAvatarCamTargetPosZ !== null ? window.inControl.use3DAvatarCamTargetPosZ : avatarDefinition.defaultCameraLookAtZ
+    this.avatarDefaultCameraLookAtX = avatarDefinition.defaultCameraLookAtX
+    this.avatarDefaultCameraLookAtY = avatarDefinition.defaultCameraLookAtY
+    this.avatarDefaultCameraLookAtZ = avatarDefinition.defaultCameraLookAtZ
     
     this.acknowledgeAnimationAction = false;
     this.initialAnimationAction = false;
@@ -677,6 +679,7 @@ export class HadronAvatar {
       model.position.z = (model.position.z - center.z);
 
       this.setDefaultCameraPosition()
+      this.setFinalCameraPosition()
     }
   }
 
@@ -976,6 +979,18 @@ export class HadronAvatar {
       this.controls.update()
     }
   }
+
+  setFinalCameraPosition() {console.log(window.inControl.use3DAvatarCamPos)
+    if (window.inControl.use3DAvatarCamPos) {
+      var camPos = JSON.parse(window.inControl.use3DAvatarCamPos)
+      this.defaultCamera.position.x += camPos[this.avatarName][0]
+      this.defaultCamera.position.y += camPos[this.avatarName][1]
+      this.defaultCamera.position.z += camPos[this.avatarName][2]
+      console.log('final camera position', this.defaultCamera.position)
+      this.controls.update()
+    }
+  }
+
 
   blinkEyes() {
     if (this.avatarType != 'avatarsdk') { return }
@@ -1889,6 +1904,7 @@ export class HadronAvatar {
       avatarDefinition.renderAs = 'pbr';    
     
     } else if (param == 'mark') {
+      avatarDefinition.avatarName = 'mark'
       avatarDefinition.avatarType = 'avatarsdk'
       avatarDefinition.loaderTarget = "mark_h12_bl_fbx0/untitled3.fbx";
       avatarDefinition.textureFile = "mark_h12_bl_fbx0/mark-texture.jpg"
@@ -1900,7 +1916,7 @@ export class HadronAvatar {
       avatarDefinition.cubeExtension = '';
 
       avatarDefinition.defaultCameraPositionX = 0
-      avatarDefinition.defaultCameraPositionY = 11.5
+      avatarDefinition.defaultCameraPositionY = 0
       avatarDefinition.defaultCameraPositionZ = 72
 
       avatarDefinition.defaultCameraLookAtX = null
@@ -1911,6 +1927,7 @@ export class HadronAvatar {
       window.inControl.ttsLocale = 'en_US'
   
     } else {
+      avatarDefinition.avatarName = 'jackie'
       avatarDefinition.loaderTarget = "jackie_final_short/em10_mouth_iconics.gltf";
       avatarDefinition.showGroundPlane = false;
       avatarDefinition.useCubeMap = false;

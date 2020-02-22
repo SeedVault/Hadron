@@ -141,13 +141,9 @@ class Hadron {
       this.use3DTextPanel     = this.getControlData("bot-uses-3d-text-panel", true, "bool");
       this.use3DGUIConfig     = this.getControlData("bot-uses-3d-gui-config", false, "bool");
       this.use3DAvatarOnload  = this.getControlData("bot-uses-3d-avatar-onload", false, "bool");
-      this.use3DAvatarCamPosX  = this.getControlData("bot-uses-3d-avatar-cam-pos-x", null, "float");            
-      this.use3DAvatarCamPosY  = this.getControlData("bot-uses-3d-avatar-cam-pos-y", null, "float");
-      this.use3DAvatarCamPosZ  = this.getControlData("bot-uses-3d-avatar-cam-pos-z", null, "float");
-      this.use3DAvatarCamTargetPosX  = this.getControlData("bot-uses-3d-avatar-cam-target-pos-x", null, "float");
-      this.use3DAvatarCamTargetPosY  = this.getControlData("bot-uses-3d-avatar-cam-target-pos-y", null, "float");
-      this.use3DAvatarCamTargetPosZ  = this.getControlData("bot-uses-3d-avatar-cam-target-pos-z", null, "float");
-
+      this.use3DAvatarCamPos  = this.getControlData("bot-uses-3d-avatar-cam-pos", "");                  
+      this.use3DAvatarCamTargetPos = this.getControlData("bot-uses-3d-avatar-cam-target-pos", "");
+      
       this.hideInput          = this.getControlData("bot-hide-input", false, "bool");
       this.trackAnonymousUserId = this.getControlData("bot-track-anonymous-user-id", false, "bool");
       this.userId             = this.getControlData("bot-userid", this.getAnonymousUserId(this.trackAnonymousUserId));    
