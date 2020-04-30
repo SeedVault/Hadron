@@ -21,7 +21,7 @@
     "adaptivecards": "~1.2.5",
     "artyom.js": "~1.0.6",
     "dat.gui": "~0.7.6",
-    "jquery": "~3.4.1",
+    "jquery": "~3.5.0",
     "three": "~0.107.0",
     "zoid": "~9.0.28"
   },
