@@ -54,7 +54,7 @@
     "http-proxy-middleware": "~0.19.1",
     "json-loader": "~0.5.7",
     "modernizr": "~3.7.1",
-    "node-notifier": "~5.4.3",
+    "node-notifier": "~8.0.1",
     "ora": "~3.4.0",
     "portfinder": "~1.0.23",
     "rimraf": "~3.0.0",
