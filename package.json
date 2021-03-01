@@ -22,7 +22,7 @@
     "artyom.js": "~1.0.6",
     "dat.gui": "~0.7.6",
     "jquery": "~3.4.1",
-    "three": "~0.107.0",
+    "three": "~0.125.0",
     "zoid": "~9.0.28"
   },
   "devDependencies": {
