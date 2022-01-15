@@ -59,7 +59,7 @@
     "portfinder": "~1.0.23",
     "rimraf": "~3.0.0",
     "semver": "~6.3.0",
-    "shelljs": "~0.8.3",
+    "shelljs": "~0.8.5",
     "style-loader": "~1.0.0",
     "webpack": "~4.39.2",
     "webpack-cli": "~3.3.7",
